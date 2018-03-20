@@ -51,22 +51,23 @@ void load_libs()
         // "Cintex",
         "StandardRecord",
         // "StandardRecord_dict",
-        "CAFAnaCore",
-        "CAFAnaVars",
-        "CAFAnaCuts",
-        "CAFAnaSysts",
+//        "CAFAnaCore",
+//        "CAFAnaVars",
+//        "CAFAnaCuts",
+//       "CAFAnaSysts",
         // "CAFAnaUnfold",
-        "CAFAnaDecomp",
-        "CAFAnaExtrap",
-        "CAFAnaPrediction",
+//        "CAFAnaDecomp",
+//       "CAFAnaExtrap",
+//       "CAFAnaPrediction",
         //        "CAFAnaExperiment",
         // "CAFAnaFC",
-        "CAFAnaAnalysis",
+//       "CAFAnaAnalysis",
         // "CAFAnaXSec",
         // "CAFAna",
         //        "OscLibFunc",
         // "MCReweightFunc",
         //        "ifdh"
+        "CAFAna"
       };
 
     // Actually load the libraries
