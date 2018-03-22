@@ -1,18 +1,18 @@
 CXX = g++ -std=c++17
 
-CPPFLAGS = $(SRT_MAKEFLAGS) $(shell root-config --cflags) -I $(IFDHC_FQ_DIR)/inc
+CPPFLAGS = $(SRT_MAKEFLAGS) $(shell root-config --cflags) -I $(IFDHC_FQ_DIR)/inc -I $(BOOST_INC) -I $(CLHEP_INC)
 
 CFLAGS = $(CPPFLAGS) -fPIC
 
 LDFLAGS = -g -L $(SRT_PRIVATE_CONTEXT)/lib/$(SRT_SUBDIR)/ -L $(SRT_PUBLIC_CONTEXT)/lib/$(SRT_SUBDIR)/ -L $(IFDHC_LIB)
 
-LDLIBS = -lOscLibFunc -lStandardRecord -lifdh
+LDLIBS = -lifdh # -lOscLibFunc -lStandardRecord
 
 TMPDIR = $(SRT_PRIVATE_CONTEXT)/tmp/$(SRT_SUBDIR)/CAFAna/
 
 VPATH = $(TMPDIR)
 
-SRCS = $(wildcard **/*.cxx) # searches all subdirs
+SRCS = $(wildcard CAFAna/**/*.cxx OscLib/func/*.cxx Utilities/func/*.cxx) # searches all subdirs
 
 OBJS = $(addprefix $(TMPDIR)/,$(SRCS:.cxx=.o))
 
@@ -49,6 +49,7 @@ $(TMPDIR)/%.d: %.cxx
 
 	@echo '[ depend $< -> $(notdir $@) ]'
 
+	@mkdir -p $(dir $@)
 	@rm -f $@
 	@$(CXX) -MM $(CPPFLAGS) $< > $@
 	@sed -i 's/\(.*\).o:/\1.o \1.d:/' $@

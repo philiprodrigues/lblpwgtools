@@ -41,32 +41,14 @@ void load_libs()
 
 
   // Include path
-  TString includes = "-I$SRT_PRIVATE_CONTEXT/include/ -I$SRT_PUBLIC_CONTEXT/include/ -I$ROOTSYS/include -I$NUTOOLS_INC -I$GENIE_INC/GENIE/";
+  TString includes = "-I$SRT_PRIVATE_CONTEXT/ -I$SRT_PUBLIC_CONTEXT/ -I$ROOTSYS/include -I$NUTOOLS_INC -I$GENIE_INC/GENIE/";
 
   if (qmrb == "") {    // This is the SRT build
     // List of libraries to load. Dependency order.
     const std::vector<std::string> libs =
       {
         "Minuit2", // CAFReweight pulls in Genie which pulls in ROOT geometry
-        // "Cintex",
-        "StandardRecord",
-        // "StandardRecord_dict",
-//        "CAFAnaCore",
-//        "CAFAnaVars",
-//        "CAFAnaCuts",
-//       "CAFAnaSysts",
-        // "CAFAnaUnfold",
-//        "CAFAnaDecomp",
-//       "CAFAnaExtrap",
-//       "CAFAnaPrediction",
-        //        "CAFAnaExperiment",
-        // "CAFAnaFC",
-//       "CAFAnaAnalysis",
-        // "CAFAnaXSec",
-        // "CAFAna",
-        //        "OscLibFunc",
-        // "MCReweightFunc",
-        //        "ifdh"
+        "ifdh",
         "CAFAna"
       };
 

@@ -11,12 +11,22 @@ fi
 
 ### Initial setup and build of novasoft subset ###
 
-rm -f nova_srt_bootstrap
-wget https://cdcvs.fnal.gov/redmine/projects/novaart/repository/raw/trunk/SRT_NOVA/scripts/nova_srt_bootstrap || exit 1
+#rm -f nova_srt_bootstrap
+#wget https://cdcvs.fnal.gov/redmine/projects/novaart/repository/raw/trunk/SRT_NOVA/scripts/nova_srt_bootstrap || exit 1
 
-chmod +x nova_srt_bootstrap || exit 1
+#chmod +x nova_srt_bootstrap || exit 1
 
-./nova_srt_bootstrap . || exit 1
+#./nova_srt_bootstrap . || exit 1
+
+source setup2.sh
+
+svn co http://cdcvs.fnal.gov/subversion/novaart.pkgs.svn/trunk/OscLib
+svn co http://cdcvs.fnal.gov/subversion/novaart.pkgs.svn/trunk/Utilities
+
+mkdir tmp
+mkdir lib
+
+exit
 
 source srt/srt.sh || exit 1
 
