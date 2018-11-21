@@ -9,6 +9,4 @@ namespace ana
 
   // -1 if not found, and an error printout unless quiet=true
   int GetGenieIndex(const std::string& name, bool quiet = false);
-
-  std::string GetGenieWeightName(int index);
 }

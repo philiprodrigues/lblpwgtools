@@ -7,11 +7,13 @@
 
 namespace ana
 {
+
   class DUNENDEvSyst: public ISyst
   {
   public:
-    DUNENDEvSyst() : ISyst("NDEv", "Near Detector reco Ev") {}
-
+    std::string ShortName() const override {return "NDEv";}
+    std::string LatexName() const override {return "Near Detector reco Ev";}
+    
     void Shift(double sigma,
                        Restorer& restore,
                        caf::StandardRecord* sr,
@@ -22,16 +24,17 @@ namespace ana
       sr->dune.Ev_reco *= scale;
       sr->dune.Ev_reco_numu *= scale;
       sr->dune.Ev_reco_nue *= scale;
-    }
+    }    
   };
 
-  extern const DUNENDEvSyst kNDEvSyst;
+  static const DUNENDEvSyst kNDEvSyst;
 
   class DUNENDPIDSyst: public ISyst
   {
   public:
-    DUNENDPIDSyst() : ISyst("NDPID", "Near Detector lepton PID") {}
-
+    std::string ShortName() const override {return "NDPID";}
+    std::string LatexName() const override {return "Near Detector lepton PID";}
+    
     void Shift(double sigma,
                        Restorer& restore,
                        caf::StandardRecord* sr,
@@ -58,10 +61,11 @@ namespace ana
       } else { // NC event
         sr->dune.numu_pid = -1.;
         sr->dune.nue_pid = -1.;
-      }
+      } 
 
-    }
+    }    
   };
 
-  extern const DUNENDPIDSyst kNDPIDSyst;
+  static const DUNENDPIDSyst kNDPIDSyst;
+
 }

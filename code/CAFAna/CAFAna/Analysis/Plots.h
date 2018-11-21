@@ -41,15 +41,7 @@ namespace ana
   std::vector<TH1*> GetMCComponents(const IPrediction* mc,
 				    osc::IOscCalculator* calc,
 				    std::string hist_name,
-				    double pot,
-				    bool force1D = false);
-  
-  std::vector<TH1*> GetMCTotalForSystShifts(const IPrediction* mc,
-					    osc::IOscCalculator* calc,
-					    const ISyst* syst,
-					    std::string hist_base_name,
-					    double pot,
-					    bool force1D = false);
+				    double pot);
 
   /// Plot data/MC ratio for the given spectrum. Normalize MC to Data by area
   void DataMCAreaNormalizedRatio(const Spectrum& data, const Spectrum& mc,

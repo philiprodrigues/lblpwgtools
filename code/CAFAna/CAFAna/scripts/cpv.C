@@ -2,6 +2,10 @@
 // Standard script for DUNE CPV sensitivity
 // Input files use TensorFlow CVN training from May 2018 
 
+#ifdef __CINT__
+void cpv(bool reload = false){}
+#else
+
 #include "CAFAna/Analysis/Fit.h"
 #include "CAFAna/Analysis/CalcsNuFit.h"
 
@@ -336,3 +340,5 @@ void cpv(bool reload = false)
   }
   fout->Close();
 }
+
+#endif

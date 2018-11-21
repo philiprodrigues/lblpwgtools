@@ -70,6 +70,7 @@ namespace caf
     double vtx_x;
     double vtx_y;
     double vtx_z;
+    double det_x;
 
     // True energy of particles by species
     double eP;
@@ -87,6 +88,10 @@ namespace caf
     double LepMomZ;
     double LepE;
     double LepNuAngle;
+
+    double nuvtxx_truth;
+    double nuvtxy_truth;
+    double nuvtxz_truth;
 
     // config
     int run;

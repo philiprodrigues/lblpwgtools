@@ -9,13 +9,13 @@ namespace ana
   class DUNERunPOTSpectrumLoader;
 
   /// Prediction that just uses FD MC, with no extrapolation
-  class PredictionNoExtrap: public PredictionExtrap
+  class PredictionOffExtrap: public PredictionExtrap
   {
   public:
-    PredictionNoExtrap(PredictionExtrap* pred);
+    PredictionOffExtrap(PredictionExtrap* pred);
 
     // This is the DUNE constructor
-    PredictionNoExtrap(SpectrumLoaderBase& loaderNonswap,
+    PredictionOffExtrap(SpectrumLoaderBase& loaderNonswap,
                        SpectrumLoaderBase& loaderNue,
                        SpectrumLoaderBase& loaderNuTau,
                        const std::string& label,
@@ -27,7 +27,17 @@ namespace ana
 		       int offLocation = 0, 
                        const Var& wei = kUnweighted);
 
-    PredictionNoExtrap(SpectrumLoaderBase& loaderNonswap,
+    PredictionOffExtrap(SpectrumLoaderBase& loaderNonswap,
+                       SpectrumLoaderBase& loaderNue,
+                       SpectrumLoaderBase& loaderNuTau,
+                       const HistAxis& axis,
+                       const Cut& cut,
+                       std::map <float, std::map <float, std::map<float, float>>> map ,
+                       const SystShifts& shift = kNoShift,
+                       int offLocation = 0,
+                       const Var& wei = kUnweighted);
+
+    PredictionOffExtrap(SpectrumLoaderBase& loaderNonswap,
                        SpectrumLoaderBase& loaderNue,
                        SpectrumLoaderBase& loaderNuTau,
                        const std::string& label,
@@ -38,7 +48,7 @@ namespace ana
                        const SystShifts& shift = kNoShift,
                        const Var& wei = kUnweighted);
 
-    PredictionNoExtrap(SpectrumLoaderBase& loaderNonswap,
+    PredictionOffExtrap(SpectrumLoaderBase& loaderNonswap,
                        SpectrumLoaderBase& loaderNue,
                        SpectrumLoaderBase& loaderNuTau,
 		       const HistAxis& axis,
@@ -46,17 +56,7 @@ namespace ana
                        const SystShifts& shift = kNoShift,
                        const Var& wei = kUnweighted);
 
-    PredictionNoExtrap(SpectrumLoaderBase& loaderNonswap,
-                       SpectrumLoaderBase& loaderNue,
-                       SpectrumLoaderBase& loaderNuTau,
-                       const std::string& label,
-		       const Binning& bins,
-		       const Var& var,
-                       const Cut& cut,
-                       const SystShifts& shift = kNoShift,
-                       const Var& wei = kUnweighted);
-
-    PredictionNoExtrap(Loaders& loaders,
+    PredictionOffExtrap(Loaders& loaders,
                        const std::string& label,
                        const Binning& bins,
                        const Var& var,
@@ -64,25 +64,25 @@ namespace ana
                        const SystShifts& shift = kNoShift,
                        const Var& wei = kUnweighted);
 
-    PredictionNoExtrap(Loaders& loaders,
+    PredictionOffExtrap(Loaders& loaders,
                        const HistAxis& axis,
                        const Cut& cut,
                        const SystShifts& shift = kNoShift,
                        const Var& wei = kUnweighted);
 
-    virtual ~PredictionNoExtrap();
+    virtual ~PredictionOffExtrap();
 
-    static std::unique_ptr<PredictionNoExtrap> LoadFrom(TDirectory* dir);
+    static std::unique_ptr<PredictionOffExtrap> LoadFrom(TDirectory* dir);
     virtual void SaveTo(TDirectory* dir) const override;
 
     std::map <float, std::map <float, std::map<float, float>>> fExtrapMap;
 
   };
 
-  class NoExtrapPredictionGenerator: public IPredictionGenerator
+  class OffExtrapPredictionGenerator: public IPredictionGenerator
   {
   public:
-    NoExtrapPredictionGenerator(HistAxis axis, Cut cut)
+    OffExtrapPredictionGenerator(HistAxis axis, Cut cut)
       : fAxis(axis), fCut(cut)
     {
     }
@@ -91,7 +91,7 @@ namespace ana
     Generate(Loaders& loaders, const SystShifts& shiftMC = kNoShift) const override
     {
       return std::unique_ptr<IPrediction>(
-                                          new PredictionNoExtrap(loaders, fAxis, fCut, shiftMC));
+                                          new PredictionOffExtrap(loaders, fAxis, fCut, shiftMC));
     }
 
   protected:
@@ -100,47 +100,41 @@ namespace ana
     //std::map <float, std::map <float, std::map<float, float>>> fExtrapMap;
   };
 
-  class DUNENoExtrapPredictionGenerator: public IPredictionGenerator
+  class DUNEOffExtrapPredictionGenerator: public IPredictionGenerator
   {
   public:
 
-    DUNENoExtrapPredictionGenerator(SpectrumLoaderBase& loaderBeam,
+    DUNEOffExtrapPredictionGenerator(SpectrumLoaderBase& loaderBeam,
                                     SpectrumLoaderBase& loaderNue,
                                     SpectrumLoaderBase& loaderNuTau,
                                     SpectrumLoaderBase& loaderNC,
-				    std::string label, Binning bins, Var var, Cut cut, Var wei)
+                                    HistAxis axis,
+                                    Cut cut,
+				    std::map <float, std::map <float, std::map<float, float>>> map,
+				    int offLocation, Var wei)
       : fLoaderBeam(loaderBeam), fLoaderNue(loaderNue),
-        fLoaderNuTau(loaderNuTau), fLoaderNC(loaderNC), 
-        fLabel(label), fBins(bins), fVar(var), fCut(cut), fWei(wei)
+        fLoaderNuTau(loaderNuTau), fLoaderNC(loaderNC),
+        fAxis(axis), fCut(cut), fMap(map), fOffLocation(offLocation), fWei(wei)
     {
     }
- 
     virtual std::unique_ptr<IPrediction>
-    Generate(Loaders& loaders, const SystShifts& shiftMC = kNoShift /*, const Var& wei = kUnweighted*/)  const override
+    Generate(Loaders& loaders, const SystShifts& shiftMC = kNoShift) const override
     {
-      return std::unique_ptr<IPrediction>(new PredictionNoExtrap(fLoaderBeam, fLoaderNue, fLoaderNuTau,
-                                          fLabel, fBins, fVar, fCut));
+      return std::unique_ptr<IPrediction>(
+        new PredictionOffExtrap(fLoaderBeam, fLoaderNue, fLoaderNuTau, 
+                               fAxis, fCut, fMap, shiftMC, fOffLocation, fWei));
     }
-/*
-    virtual std::unique_ptr<IPrediction>
-    Generate(Loaders& loaders, const SystShifts& shiftMC = kNoShift ) const override
-    {
-      return std::unique_ptr<IPrediction>( new PredictionOffExtrap(fLoaderBeam, fLoaderNue, fLoaderNuTau,
-                              fBins, fCut, shiftMC, 0 ));
-      //return new PredictionOffExtrap(fLoaderBeam, fLoaderNue, fLoaderNuTau, fBins, fCut, shiftMC, 0);
-    }
-*/
 
   protected:
     SpectrumLoaderBase& fLoaderBeam;
     SpectrumLoaderBase& fLoaderNue;
     SpectrumLoaderBase& fLoaderNuTau;
     SpectrumLoaderBase& fLoaderNC;
-    std::string fLabel;
-    Binning fBins;
-    Var fVar;
+    HistAxis fAxis;
     Cut fCut;
-    Var fWei;
+    std::map <float, std::map <float, std::map<float, float>>> fMap;    
+    int fOffLocation;
+    Var fWei;    
   };
-
 }
+

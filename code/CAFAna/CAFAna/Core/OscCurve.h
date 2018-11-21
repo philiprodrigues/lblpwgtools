@@ -21,9 +21,8 @@ namespace ana
     OscCurve(const OscCurve& rhs);
     OscCurve& operator=(const OscCurve& rhs);
 
-    TH1D* ToTH1(bool title = false) const;
+    TH1* ToTH1() const;
   protected:
-    int fFrom, fTo;
     TH1D* fHist;
   };
 }

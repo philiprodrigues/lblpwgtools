@@ -25,6 +25,12 @@ namespace ana
 {
   class Ratio;
 
+  enum EBinType
+  {
+    kBinContent, ///< Regular histogram
+    kBinDensity  ///< Divide bin contents by bin widths
+  };
+
   /// Representation of a spectrum in any variable, with associated POT
   class Spectrum
   {
@@ -32,6 +38,8 @@ namespace ana
     friend class SpectrumLoaderBase;
     friend class SpectrumLoader;
     friend class NullLoader;
+    friend class MRCCLoader;
+    friend class DUNERunPOTSpectrumLoader;
 
     enum ESparse{kDense, kSparse};
 
@@ -106,9 +114,9 @@ namespace ana
              const Var& wei = kUnweighted,
 	     ESparse sparse = kDense);
 
-    Spectrum(const std::string& xLabel,
-	     const std::string& yLabel,
-	     const std::string& zLabel,
+    Spectrum(const std::string& xLabel, 
+	     const std::string& yLabel, 
+	     const std::string& zLabel, 
 	     SpectrumLoaderBase& loader,
              const Binning& binsx, const Var& varx,
              const Binning& binsy, const Var& vary,
@@ -162,17 +170,15 @@ namespace ana
     }
 
     /// Spectrum must be 2D to obtain TH2
-    TH2*  ToTH2     (double exposure, EExposureType expotype = kPOT,
-		     EBinType bintype = kBinContent) const;
+    TH2*  ToTH2     (double exposure, EExposureType expotype = kPOT) const;
     /// Spectrum must be 2D to obtain TH2. Normalized to X axis.
     TH2*  ToTH2NormX(double exposure, EExposureType expotype = kPOT) const;
 
     /// Spectrum must be 3D to obtain TH3
-    TH3*  ToTH3     (double exposure, EExposureType expotype = kPOT,
-		     EBinType bintype = kBinContent) const;
+    TH3*  ToTH3     (double exposure, EExposureType expotype = kPOT) const;
 
     /// Function decides what is the appropriate projection based on fBins, and does that
-    TH1*  ToTHX     (double exposure, bool force1D = false, EExposureType expotype = kPOT) const;
+    TH1*  ToTHX     (double exposure, EExposureType expotype = kPOT) const;
 
     /// \brief Return total number of events scaled to \a pot
     ///

@@ -148,47 +148,48 @@ namespace ana
   std::vector<TH1*> GetMCComponents(const IPrediction* mc,
 				    osc::IOscCalculator* calc,
 				    std::string hist_name,
-				    double pot,
-				    bool force1D)
+				    double pot)
   {
     std::vector<TH1*> ret;
 
-    TH1* hTotal = mc->Predict(calc).ToTHX(pot, force1D);
+    // Want total, AllNumu, AllNue, AllNutau, Numu, Numubar, AllBeamNue, AllSignalNue, BeamNue BeamNuebar, SignalNue, SignalNuebar, NC
+    
+    TH1* hTotal = mc->Predict(calc).ToTHX(pot);
     hTotal->SetNameTitle((hist_name+"_total").c_str(), (hist_name+"_total").c_str());
     ret .push_back(hTotal);
     
     TH1* hNC = mc->PredictComponent(calc,
                                     Flavors::kAll,
                                     Current::kNC,
-                                    Sign::kBoth).ToTHX(pot, force1D);
+                                    Sign::kBoth).ToTHX(pot);
     hNC->SetNameTitle((hist_name+"_NC").c_str(), (hist_name+"_NC").c_str());
     ret .push_back(hNC);
     
     TH1* hAllNumu = mc->PredictComponent(calc,
 					 Flavors::kAllNuMu,
 					 Current::kCC,
-					 Sign::kBoth).ToTHX(pot, force1D);
+					 Sign::kBoth).ToTHX(pot);
     hAllNumu->SetNameTitle((hist_name+"_AllNumu").c_str(), (hist_name+"_AllNumu").c_str());
     ret .push_back(hAllNumu);
 
     TH1* hNumu = mc->PredictComponent(calc,
 				      Flavors::kAllNuMu,
 				      Current::kCC,
-				      Sign::kNu).ToTHX(pot, force1D);
+				      Sign::kNu).ToTHX(pot);
     hNumu->SetNameTitle((hist_name+"_Numu").c_str(), (hist_name+"_Numu").c_str());
     ret .push_back(hNumu);
     
     TH1* hNumubar = mc->PredictComponent(calc,
 					 Flavors::kAllNuMu,
 					 Current::kCC,
-					 Sign::kAntiNu).ToTHX(pot, force1D);
+					 Sign::kAntiNu).ToTHX(pot);
     hNumubar->SetNameTitle((hist_name+"_Numubar").c_str(), (hist_name+"_Numubar").c_str());
     ret .push_back(hNumubar);
 
     TH1* hAllNutau = mc->PredictComponent(calc,
 					  Flavors::kAllNuTau,
 					  Current::kCC,
-					  Sign::kBoth).ToTHX(pot, force1D);
+					  Sign::kBoth).ToTHX(pot);
     hAllNutau->SetNameTitle((hist_name+"_AllNutau").c_str(), (hist_name+"_AllNutau").c_str());
     ret .push_back(hAllNutau);    
 
@@ -196,75 +197,54 @@ namespace ana
     TH1* hAllNue = mc->PredictComponent(calc,
 					Flavors::kAllNuE,
 					Current::kCC,
-					Sign::kBoth).ToTHX(pot, force1D);
+					Sign::kBoth).ToTHX(pot);
     hAllNue->SetNameTitle((hist_name+"_AllNue").c_str(), (hist_name+"_AllNue").c_str());
     ret .push_back(hAllNue);    
     
     TH1* hAllBeamNue = mc->PredictComponent(calc,
 					    Flavors::kNuEToNuE,
 					    Current::kCC,
-					    Sign::kBoth).ToTHX(pot, force1D);
+					    Sign::kBoth).ToTHX(pot);
     hAllBeamNue->SetNameTitle((hist_name+"_AllBeamNue").c_str(), (hist_name+"_AllBeamNue").c_str());
     ret .push_back(hAllBeamNue);
 
     TH1* hBeamNue = mc->PredictComponent(calc,
 					 Flavors::kNuEToNuE,
 					 Current::kCC,
-					 Sign::kNu).ToTHX(pot, force1D);
+					 Sign::kNu).ToTHX(pot);
     hBeamNue->SetNameTitle((hist_name+"_BeamNue").c_str(), (hist_name+"_BeamNue").c_str());
     ret .push_back(hBeamNue);
 
     TH1* hBeamNuebar = mc->PredictComponent(calc,
 					 Flavors::kNuEToNuE,
 					 Current::kCC,
-					 Sign::kAntiNu).ToTHX(pot, force1D);
+					 Sign::kAntiNu).ToTHX(pot);
     hBeamNuebar->SetNameTitle((hist_name+"_BeamNuebar").c_str(), (hist_name+"_BeamNuebar").c_str());
     ret .push_back(hBeamNuebar);
     
     TH1* hAllSignalNue = mc->PredictComponent(calc,
 					      Flavors::kNuMuToNuE,
 					      Current::kCC,
-					      Sign::kBoth).ToTHX(pot, force1D);
+					      Sign::kBoth).ToTHX(pot);
     hAllSignalNue->SetNameTitle((hist_name+"_AllSignalNue").c_str(), (hist_name+"_AllSignalNue").c_str());
     ret .push_back(hAllSignalNue);
     
     TH1* hSignalNue = mc->PredictComponent(calc,
 					   Flavors::kNuMuToNuE,
 					   Current::kCC,
-					   Sign::kNu).ToTHX(pot, force1D);
+					   Sign::kNu).ToTHX(pot);
     hSignalNue->SetNameTitle((hist_name+"_SignalNue").c_str(), (hist_name+"_SignalNue").c_str());
     ret .push_back(hSignalNue);
     
     TH1* hSignalNuebar = mc->PredictComponent(calc,
 					      Flavors::kNuMuToNuE,
 					      Current::kCC,
-					      Sign::kAntiNu).ToTHX(pot, force1D);
+					      Sign::kAntiNu).ToTHX(pot);
     hSignalNuebar->SetNameTitle((hist_name+"_SignalNuebar").c_str(), (hist_name+"_SignalNuebar").c_str());
     ret .push_back(hSignalNuebar);
     
     return ret;
   }
-
-  //----------------------------------------------------------------------
-  std::vector<TH1*> GetMCTotalForSystShifts(const IPrediction* mc,
-					    osc::IOscCalculator* calc,
-					    const ISyst* syst, 
-					    std::string hist_base_name,
-					    double pot,
-					    bool force1D)
-  {
-    std::vector<TH1*> ret;
-    std::string syst_name = syst->ShortName();
-    for (int i = -3; i < 4; ++i){
-      SystShifts s(syst, double(i));
-      TH1* hTotal = mc->PredictSyst(calc, s).ToTHX(pot, force1D);
-      hTotal->SetNameTitle((hist_base_name+"_total_"+syst_name+"_"+std::to_string(i)).c_str(), 
-			   (hist_base_name+"_total_"+syst_name+"_"+std::to_string(i)).c_str());
-      ret .push_back(hTotal);
-    }
-    return ret;
-  }
-
   
   //----------------------------------------------------------------------
   void DataMCRatio(const Spectrum& data,

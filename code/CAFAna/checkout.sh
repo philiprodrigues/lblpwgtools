@@ -71,9 +71,6 @@ cd ..
 
 ### Do the initial build ###
 
-# Force SL6 here
-export SRT_ARCH=Linux2.6
-
 time SRT_NOVA/scripts/novasoft_build -rel development
 
 echo

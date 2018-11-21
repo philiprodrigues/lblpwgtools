@@ -65,7 +65,7 @@ namespace ana
       if(f){
         std::string ss;
         f >> ss;
-        if(ss.find("root.exe") == std::string::npos) return;
+        if(ss.size() < 8 || &ss[ss.size()-8] != std::string("root.exe")) return;
       }
 
       // Handle uncaught exceptions

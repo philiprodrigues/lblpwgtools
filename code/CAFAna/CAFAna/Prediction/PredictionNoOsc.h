@@ -5,6 +5,8 @@ namespace ana
 {
   class Loaders;
 
+  class DUNERunPOTSpectrumLoader;
+
   /// Prediction that wraps a simple Spectrum
   class PredictionNoOsc: public IPrediction
   {
@@ -63,9 +65,8 @@ namespace ana
   public:
     NoOscPredictionGenerator(SpectrumLoaderBase& loader,
                              HistAxis axis,
-                             Cut cut,
-			     Var wei = kUnweighted)
-      : fLoader(loader), fAxis(axis), fCut(cut), fWei(wei)
+                             Cut cut)
+      : fLoader(loader), fAxis(axis), fCut(cut)
     {
     }
 
@@ -75,13 +76,12 @@ namespace ana
       return std::unique_ptr<IPrediction>(new PredictionNoOsc(fLoader,
                                                               fAxis,
                                                               fCut,
-                                                              shiftMC, fWei));
+                                                              shiftMC));
     }
   protected:
     SpectrumLoaderBase& fLoader;
     HistAxis fAxis;
     Cut fCut;
-    Var fWei;
   };
 
 }

@@ -172,10 +172,6 @@ namespace ana
     if(str.find(' ') == std::string::npos){
       WildcardSource* ret = new WildcardSource(str, stride, offset);
       if(ret->NFiles() > 0) return ret;
-      else {
-	std::cout << "Warning: " << str << " does not exist!" << std::endl;
-	abort();
-      }
       delete ret;
     }
 
@@ -278,11 +274,8 @@ namespace ana
     //      trPot = (TTree*)f->Get("mvaselectnumu/pottree");
     //    else
     //      trPot = (TTree*)f->Get("mvaselect/pottree");
-
-    if (f->GetListOfKeys()->Contains("meta"))
-      trPot = (TTree*)f->Get("meta");
-    else
-      trPot = (TTree*)f->Get("pottree");
+    //trPot = (TTree*)f->Get("pottree");
+    trPot = (TTree*)f->Get("mvaselect/pottree");
     assert(trPot);
 
     double pot;

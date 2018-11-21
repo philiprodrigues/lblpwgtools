@@ -52,7 +52,6 @@ namespace ana
     loader.AddSpectrum(*this, var, cut, shift, wei);
   }
 
-  //----------------------------------------------------------------------
   Spectrum::Spectrum(const std::string& label, const Binning& bins,
                      SpectrumLoaderBase& loader,
                      const MultiVar& var,
@@ -226,7 +225,7 @@ namespace ana
       static bool once = true;
       if(once){
         once = false;
-        std::cerr << "Spectrum's fHist (" << fHist << ") is associated with a directory (" << fHist->GetDirectory() << ". How did that happen?" << std::endl;
+        std::cerr << "Spectrum's fHist is associated with a directory. How did that happen?" << std::endl;
       }
     }
 
@@ -441,20 +440,15 @@ namespace ana
 
 
     ret->SetLineColor(col);
-    ret->SetMarkerColor(col);
     ret->SetLineStyle(style);
 
     if(bintype == kBinDensity) ret->Scale(1, "width");
-
-    // Allow GetMean() and friends to work even if this histogram never had any
-    // explicit Fill() calls made.
-    if(ret->GetEntries() == 0) ret->SetEntries(1);
 
     return ret;
   }
 
   //----------------------------------------------------------------------
-  TH2* Spectrum::ToTH2(double exposure, EExposureType expotype, EBinType bintype) const
+  TH2* Spectrum::ToTH2(double exposure, EExposureType expotype) const
   {
     if(fBins.size() != 2){
       std::cout << "Error: This Spectrum does not appear to be 2D." << std::endl;
@@ -465,12 +459,6 @@ namespace ana
 
     ret->GetXaxis()->SetTitle(fLabels[0].c_str());
     ret->GetYaxis()->SetTitle(fLabels[1].c_str());
-
-    if(bintype == kBinDensity) ret->Scale(1, "width");
-
-    // Allow GetMean() and friends to work even if this histogram never had any
-    // explicit Fill() calls made.
-    if(ret->GetEntries() == 0) ret->SetEntries(1);
 
     return ret;
   }
@@ -499,15 +487,11 @@ namespace ana
       }
     }
 
-    // Allow GetMean() and friends to work even if this histogram never had any
-    // explicit Fill() calls made.
-    if(xyhist->GetEntries() == 0) xyhist->SetEntries(1);
-
     return xyhist;
   }
 
   //----------------------------------------------------------------------
-  TH3* Spectrum::ToTH3(double exposure, EExposureType expotype, EBinType bintype) const
+  TH3* Spectrum::ToTH3(double exposure, EExposureType expotype) const
   {
     if(fBins.size() != 3){
       std::cout << "Error: This Spectrum does not appear to be 3D." << std::endl;
@@ -521,25 +505,18 @@ namespace ana
     ret->GetYaxis()->SetTitle(fLabels[1].c_str());
     ret->GetZaxis()->SetTitle(fLabels[2].c_str());
 
-    if(bintype == kBinDensity) ret->Scale(1, "width");
-
-    // Allow GetMean() and friends to work even if this histogram never had any
-    // explicit Fill() calls made.
-    if(ret->GetEntries() == 0) ret->SetEntries(1);
-
     return ret;
   }
 
   //----------------------------------------------------------------------
-  TH1* Spectrum::ToTHX(double exposure, bool force1D, EExposureType expotype) const
+  TH1* Spectrum::ToTHX(double exposure, EExposureType expotype) const
   {
-    if (force1D) return this->ToTH1(exposure, expotype);
     switch(fBins.size()){
-    case 1:
+    case 1: 
       return this->ToTH1(exposure, expotype);
-    case 2:
+    case 2: 
       return this->ToTH2(exposure, expotype);
-    case 3:
+    case 3: 
       return this->ToTH3(exposure, expotype);
     default:
       std::cout << "Error: unable to hande number of dimensions (" << fBins.size() << ")" << std::endl;
@@ -579,20 +556,15 @@ namespace ana
   //----------------------------------------------------------------------
   double Spectrum::Mean() const
   {
-    // Allow GetMean() to work even if this histogram never had any explicit
-    // Fill() calls made.
-    if(fHist->GetEntries() == 0) fHist->SetEntries(1);
     return fHist->GetMean();
   }
 
   //----------------------------------------------------------------------
   void Spectrum::Fill(double x, double w)
   {
-    assert( (fHist || fHistSparse) && "Somehow both fHist and fHistSparse are null in Spectrum::Fill" );
-
     if(fHist)
       fHist->Fill(x, w);
-    else if (fHistSparse)
+    else
       fHistSparse->Fill(&x, w);
   }
 
@@ -824,7 +796,6 @@ namespace ana
     TObjString* tag = (TObjString*)dir->Get("type");
     assert(tag);
     assert(tag->GetString() == "Spectrum");
-    delete tag;
 
     TH1D* spect = (TH1D*)dir->Get("hist");
     THnSparseD* spectSparse = (THnSparseD*)dir->Get("hist_sparse");
@@ -842,8 +813,6 @@ namespace ana
       bins.push_back(*Binning::LoadFrom(subdir));
       TObjString* label = (TObjString*)dir->Get(TString::Format("label%d", i));
       labels.push_back(label ? label->GetString().Data() : "");
-      delete subdir;
-      delete label;
     }
 
     if(bins.empty() && labels.empty()){
@@ -859,19 +828,12 @@ namespace ana
     }
 
     if(spect){
-      std::unique_ptr<Spectrum> ret = std::make_unique<Spectrum>(std::unique_ptr<TH1D>(spect), labels, bins, hPot->GetBinContent(1), hLivetime->GetBinContent(1));
-      delete spectSparse;
-      delete hPot;
-      delete hLivetime;
-      return ret;
+      return std::make_unique<Spectrum>(std::unique_ptr<TH1D>(spect), labels, bins, hPot->GetBinContent(1), hLivetime->GetBinContent(1));
     }
     else{
       std::unique_ptr<Spectrum> ret = std::make_unique<Spectrum>((TH1*)0, labels, bins, hPot->GetBinContent(1), hLivetime->GetBinContent(1));
-      ret->fHistSparse = spectSparse;
-
-      delete spect;
-      delete hPot;
-      delete hLivetime;
+      ret->fHistSparse = (THnSparseD*)spectSparse->Clone();
+      delete spectSparse;
       return ret;
     }
   }

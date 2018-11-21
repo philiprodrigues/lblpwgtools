@@ -46,6 +46,39 @@ namespace ana
   }
 
 
+  TrivialExtrap::TrivialExtrap(SpectrumLoaderBase& loaderNonswap,
+                               SpectrumLoaderBase& loaderNue,
+                               SpectrumLoaderBase& loaderNuTau,
+                               const HistAxis& axis,
+                               const Cut& cut,
+                               const SystShifts& shift, int offLocation,
+                               const Var& wei)
+    :
+    fNueApp       (loaderNue,     axis, cut && kIsSig       && !kIsAntiNu, shift, wei),
+    fNueAppAnti   (loaderNue,     axis, cut && kIsSig       &&  kIsAntiNu, shift, wei),
+
+    fNumuSurv     (loaderNonswap, axis, cut && kIsNumuCC    && !kIsAntiNu, shift, wei),
+    fNumuSurvAnti (loaderNonswap, axis, cut && kIsNumuCC    &&  kIsAntiNu, shift, wei),
+
+    fNumuApp      (loaderNuTau,   axis, cut && kIsNumuApp   && !kIsAntiNu, shift, wei),
+    fNumuAppAnti  (loaderNuTau,   axis, cut && kIsNumuApp   &&  kIsAntiNu, shift, wei),
+
+    fNueSurv      (loaderNonswap, axis, cut && kIsBeamNue   && !kIsAntiNu, shift, wei),
+    fNueSurvAnti  (loaderNonswap, axis, cut && kIsBeamNue   &&  kIsAntiNu, shift, wei),
+
+    fTauFromE     (loaderNue,     axis, cut && kIsTauFromE  && !kIsAntiNu, shift, wei),
+    fTauFromEAnti (loaderNue,     axis, cut && kIsTauFromE  &&  kIsAntiNu, shift, wei),
+
+    fTauFromMu    (loaderNuTau,   axis, cut && kIsTauFromMu && !kIsAntiNu, shift, wei),
+    fTauFromMuAnti(loaderNuTau,   axis, cut && kIsTauFromMu &&  kIsAntiNu, shift, wei),
+
+    fNC           (loaderNonswap, axis, cut && kIsNC,                      shift, wei)
+  {
+    loaderNue  .AddSpectrum(fNC, axis.GetMultiDVar(), cut && kIsNC, shift, wei);
+    loaderNuTau.AddSpectrum(fNC, axis.GetMultiDVar(), cut && kIsNC, shift, wei);
+  }
+
+
   //----------------------------------------------------------------------
   TrivialExtrap::TrivialExtrap(SpectrumLoaderBase& loaderNonswap,
                                SpectrumLoaderBase& loaderNue,
@@ -63,15 +96,42 @@ namespace ana
   {
   }
 
+  TrivialExtrap::TrivialExtrap(SpectrumLoaderBase& loaderNonswap,
+                               SpectrumLoaderBase& loaderNue,
+                               SpectrumLoaderBase& loaderNuTau,
+                               std::string label,
+                               const Binning& bins,
+                               const Var& var,
+                               const Cut& cut,
+                               const SystShifts& shift, int offLocation,
+                               const Var& wei)
+    :
+    TrivialExtrap(loaderNonswap, loaderNue, loaderNuTau,
+                  HistAxis(label, bins, var),
+                  cut, shift, offLocation, wei)
+  {
+  }
+
   //----------------------------------------------------------------------
   TrivialExtrap::TrivialExtrap(Loaders& loaders,
                                std::string label,
                                const Binning& bins,
                                const Var& var,
                                const Cut& cut,
-                               const SystShifts& shift,
+                               const SystShifts& shift, 
                                const Var& wei)
     : TrivialExtrap(loaders, HistAxis(label, bins, var), cut, shift, wei)
+  {
+  }
+
+  TrivialExtrap::TrivialExtrap(Loaders& loaders,
+                               std::string label,
+                               const Binning& bins,
+                               const Var& var,
+                               const Cut& cut,
+                               const SystShifts& shift, int offLocation,
+                               const Var& wei)
+    : TrivialExtrap(loaders, HistAxis(label, bins, var), cut, shift, offLocation, wei)
   {
   }
 
@@ -88,6 +148,17 @@ namespace ana
   {
   }
 
+  TrivialExtrap::TrivialExtrap(Loaders& loaders,
+                               const HistAxis& axis,
+                               const Cut& cut,
+                               const SystShifts& shift, int offLocation,
+                               const Var& wei)
+    : TrivialExtrap(loaders.GetLoader(caf::kFARDET, Loaders::kMC, ana::kBeam, Loaders::kNonSwap),
+                    loaders.GetLoader(caf::kFARDET, Loaders::kMC, ana::kBeam, Loaders::kNueSwap),
+                    loaders.GetLoader(caf::kFARDET, Loaders::kMC, ana::kBeam, Loaders::kNuTauSwap),
+                    axis, cut, shift, offLocation, wei)
+  {
+  }
   //----------------------------------------------------------------------
   void TrivialExtrap::SaveTo(TDirectory* dir) const
   {

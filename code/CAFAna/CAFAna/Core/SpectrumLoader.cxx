@@ -21,15 +21,15 @@
 namespace ana
 {
   //----------------------------------------------------------------------
-  SpectrumLoader::SpectrumLoader(const std::string& wildcard, DataSource src, int max)
-    : SpectrumLoaderBase(wildcard, src), max_entries(max)
+  SpectrumLoader::SpectrumLoader(const std::string& wildcard, DataSource src)
+    : SpectrumLoaderBase(wildcard, src)
   {
   }
 
   //----------------------------------------------------------------------
   SpectrumLoader::SpectrumLoader(const std::vector<std::string>& fnames,
-                                 DataSource src, int max)
-    : SpectrumLoaderBase(fnames, src), max_entries(max)
+                                 DataSource src)
+    : SpectrumLoaderBase(fnames, src)
   {
   }
 
@@ -94,7 +94,9 @@ namespace ana
 
       if(Nfiles >= 0 && !prog) prog = new Progress(TString::Format("Filling %lu spectra from %d files matching '%s'", fHistDefs.TotalSize(), Nfiles, fWildcard.c_str()).Data());
 
-      HandleFile(f, Nfiles == 1 ? prog : 0);
+      //std::cout<<"starting 1 HandleFile() "<<std::endl;
+      HandleFile(f); //, Nfiles == 1 ? prog : 0);
+      //std::cout<<"finished 1 HandleFile() "<<std::endl;
 
       if(Nfiles > 1 && prog) prog->SetProgress((fileIdx+1.)/Nfiles);
     } // end for fileIdx
@@ -123,7 +125,8 @@ namespace ana
     //    else{
     //      tr = (TTree*)f->Get("mvaselect/MVASelection");
     //    }
-    tr = (TTree*)f->Get("caf");
+    //tr = (TTree*)f->Get("caf");
+    tr = (TTree*)f->Get("mvaselect/MVASelection");
     assert(tr);
 
     // Surely no-one will generate 1000 universes?
@@ -136,6 +139,7 @@ namespace ana
     FloatingExceptionOnNaN fpnan(false);
 
     caf::StandardRecord sr;
+
     tr->SetBranchAddress("Ev_reco", &sr.dune.Ev_reco);
     tr->SetBranchAddress("Ev_reco_nue", &sr.dune.Ev_reco_nue);
     tr->SetBranchAddress("Ev_reco_numu", &sr.dune.Ev_reco_numu);
@@ -148,22 +152,15 @@ namespace ana
     tr->SetBranchAddress("numu_pid", &sr.dune.numu_pid);
     tr->SetBranchAddress("nue_pid", &sr.dune.nue_pid);
     tr->SetBranchAddress("reco_q", &sr.dune.reco_q);
-    tr->SetBranchAddress("RecoLepEnNue", &sr.dune.RecoLepEnNue);
-    tr->SetBranchAddress("RecoHadEnNue", &sr.dune.RecoHadEnNue);
-    tr->SetBranchAddress("RecoLepEnNumu", &sr.dune.RecoLepEnNumu);
-    tr->SetBranchAddress("RecoHadEnNumu", &sr.dune.RecoHadEnNumu);
-    // ND pseudo-reconstruction flags
-    tr->SetBranchAddress("reco_numu", &sr.dune.reco_numu);
-    tr->SetBranchAddress("reco_nue", &sr.dune.reco_nue);
-    tr->SetBranchAddress("reco_nc", &sr.dune.reco_nc);
+    tr->SetBranchAddress("vtx_x", &sr.dune.vtx_x);
+    tr->SetBranchAddress("det_x", &sr.dune.det_x);
+
     // CW: add variables that Chris (M) wants for ND selections
-    tr->SetBranchAddress("muon_exit", &sr.dune.muon_exit);
-    tr->SetBranchAddress("muon_contained", &sr.dune.muon_contained);
-    tr->SetBranchAddress("muon_ecal", &sr.dune.muon_ecal);
-    tr->SetBranchAddress("muon_tracker", &sr.dune.muon_tracker);
-    tr->SetBranchAddress("Ehad_veto", &sr.dune.Ehad_veto);
+    //tr->SetBranchAddress("muon_exit", &sr.dune.muon_exit);
+    //tr->SetBranchAddress("Ehad_veto", &sr.dune.Ehad_veto);
 
     tr->SetBranchAddress("Ev", &sr.dune.Ev);
+
     tr->SetBranchAddress("Elep", &sr.dune.Elep);
     //    tr->SetBranchAddress("ccnc", &sr.dune.ccnc);
     tr->SetBranchAddress("isCC", &sr.dune.isCC);
@@ -173,8 +170,6 @@ namespace ana
     tr->SetBranchAddress("nuPDGunosc", &sr.dune.nuPDGunosc);
     tr->SetBranchAddress("LepPDG", &sr.dune.LepPDG);
     tr->SetBranchAddress("mode", &sr.dune.mode);
-    tr->SetBranchAddress("nP", &sr.dune.nP);
-    tr->SetBranchAddress("nN", &sr.dune.nN);
     tr->SetBranchAddress("nipi0", &sr.dune.nipi0);
     tr->SetBranchAddress("nipip", &sr.dune.nipip);
     tr->SetBranchAddress("nipim", &sr.dune.nipim);
@@ -182,28 +177,11 @@ namespace ana
     tr->SetBranchAddress("W", &sr.dune.W);
     tr->SetBranchAddress("Y", &sr.dune.Y);
     //    tr->SetBranchAddress("cc", &sr.dune.cc);
-    tr->SetBranchAddress("NuMomX", &sr.dune.NuMomX);
-    tr->SetBranchAddress("NuMomY", &sr.dune.NuMomY);
-    tr->SetBranchAddress("NuMomZ", &sr.dune.NuMomZ);
-    tr->SetBranchAddress("LepMomX", &sr.dune.LepMomX);
-    tr->SetBranchAddress("LepMomY", &sr.dune.LepMomY);
-    tr->SetBranchAddress("LepMomZ", &sr.dune.LepMomZ);
-    tr->SetBranchAddress("LepE", &sr.dune.LepE);
-    tr->SetBranchAddress("LepNuAngle", &sr.dune.LepNuAngle);
 
-    // Numu track containment flag
-    tr->SetBranchAddress("LongestTrackContNumu", &sr.dune.LongestTrackContNumu);
+    tr->SetBranchAddress("nuvtxx_truth",  &sr.dune.nuvtxx_truth);
+    tr->SetBranchAddress("nuvtxy_truth",  &sr.dune.nuvtxy_truth);
+    tr->SetBranchAddress("nuvtxz_truth",  &sr.dune.nuvtxz_truth);
 
-    tr->SetBranchAddress("vtx_x",  &sr.dune.vtx_x);
-    tr->SetBranchAddress("vtx_y",  &sr.dune.vtx_y);
-    tr->SetBranchAddress("vtx_z",  &sr.dune.vtx_z);
-
-    tr->SetBranchAddress("eP", &sr.dune.eP);
-    tr->SetBranchAddress("eN", &sr.dune.eN);
-    tr->SetBranchAddress("ePip", &sr.dune.ePip);
-    tr->SetBranchAddress("ePim", &sr.dune.ePim);
-    tr->SetBranchAddress("ePi0", &sr.dune.ePi0);
-    tr->SetBranchAddress("eOther", &sr.dune.eOther);
 
     tr->SetBranchAddress("run", &sr.dune.run);
     tr->SetBranchAddress("isFD", &sr.dune.isFD);
@@ -214,22 +192,18 @@ namespace ana
     tr->SetBranchAddress("sigma_numu_pid", &sr.dune.sigma_numu_pid);
     tr->SetBranchAddress("sigma_nue_pid", &sr.dune.sigma_nue_pid);
 
-    // GENIE uncertainties and CVs
-    sr.dune.genie_wgt    .resize(genie_names.size());
-    sr.dune.genie_cv_wgt .resize(genie_names.size());
+    sr.dune.genie_wgt.resize(genie_names.size());
 
     for(unsigned int i = 0; i < genie_names.size(); ++i){
       tr->SetBranchAddress(("wgt_"+genie_names[i]).c_str(),
                            &genie_tmp[i]);
       tr->SetBranchAddress((genie_names[i]+"_nshifts").c_str(),
                            &genie_size_tmp[i]);
-      tr->SetBranchAddress((genie_names[i]+"_cvwgt").c_str(),
-			   &sr.dune.genie_cv_wgt[i]);
     }
 
-    int Nentries = tr->GetEntries();
-    if (max_entries != 0 && max_entries < Nentries) Nentries = max_entries;
 
+    const int Nentries = tr->GetEntries();
+    std::cout<<"number of entries "<<Nentries<<std::endl;
     for(int n = 0; n < Nentries; ++n){
       tr->GetEntry(n);
 
@@ -256,31 +230,22 @@ namespace ana
       // }
 
       // Reformat the genie systs
-      sr.dune.total_cv_wgt = 1;
-
       for(unsigned int i = 0; i < genie_names.size(); ++i){
         const int Nuniv = genie_size_tmp[i];
         assert(Nuniv >= 0 && Nuniv <= int(genie_tmp[i].size()));
         sr.dune.genie_wgt[i].resize(Nuniv);
-	
-	// Do some error checking here
-	if (std::isnan(sr.dune.genie_cv_wgt[i]) || 
-	    std::isinf(sr.dune.genie_cv_wgt[i]) ||
-	    sr.dune.genie_cv_wgt[i] == 0)
-	  std::cout << "Warning: " << genie_names[i] << " has a bad CV of " 
-		    << sr.dune.genie_cv_wgt[i] << std::endl;
-	else
-	  sr.dune.total_cv_wgt *= sr.dune.genie_cv_wgt[i];
-
         for(int j = 0; j < Nuniv; ++j){
           sr.dune.genie_wgt[i][j] = genie_tmp[i][j];
         }
       }
 
+      //std::cout<<"starting a HandleRecord() "<<std::endl;
       HandleRecord(&sr);
+      //std::cout<<"finished a HandleRecord() "<<std::endl;
 
       if(prog && n%10000 == 0) prog->SetProgress(double(n)/Nentries);
     } // end for n
+    //std::cout<<"finished a set of HandleRecord()"<<std::endl;
   }
 
   //----------------------------------------------------------------------
@@ -320,6 +285,7 @@ namespace ana
     CutVarCache<bool, Cut> nomCutCache;
     CutVarCache<double, Var> nomWeiCache;
     CutVarCache<double, Var> nomVarCache;
+    //std::cout<<"in HandleRecord() "<<std::endl;
 
     for(auto& shiftdef: fHistDefs){
       const SystShifts& shift = shiftdef.first;

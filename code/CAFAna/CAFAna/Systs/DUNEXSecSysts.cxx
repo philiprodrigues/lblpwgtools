@@ -283,7 +283,7 @@ namespace ana
     dir->cd();
 
     TObjString("DUNEXSecSyst").Write("type");
-    TObjString(ShortName().c_str()).Write("name");
+    TObjString(fShortName.c_str()).Write("name");
 
     tmp->cd();
   }

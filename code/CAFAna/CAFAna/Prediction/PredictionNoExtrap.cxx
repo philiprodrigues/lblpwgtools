@@ -19,12 +19,32 @@ namespace ana
                                          const std::string& label,
                                          const Binning& bins,
                                          const Var& var,
+                                         const Cut& cut, 
+					 std::map <float, std::map <float, std::map<float, float>>> map,
+                                         const SystShifts& shift, int offLocation,
+                                         const Var& wei)
+    : PredictionExtrap(new TrivialExtrap(loaderNonswap, loaderNue, loaderNuTau,
+                                         label, bins, var, cut, shift, wei), offLocation, map), fExtrapMap(map)
+  {
+    std::cout<<"in PredicitonNoExtrap (off after)"<<std::endl; 
+  }
+
+  //----------------------------------------------------------------------
+
+  PredictionNoExtrap::PredictionNoExtrap(SpectrumLoaderBase& loaderNonswap,
+                                         SpectrumLoaderBase& loaderNue,
+                                         SpectrumLoaderBase& loaderNuTau,
+                                         const std::string& label,
+                                         const Binning& bins,
+                                         const Var& var, int offLocation,
                                          const Cut& cut,
+                                         std::map <float, std::map <float, std::map<float, float>>> map,
                                          const SystShifts& shift,
                                          const Var& wei)
     : PredictionExtrap(new TrivialExtrap(loaderNonswap, loaderNue, loaderNuTau,
-                                         label, bins, var, cut, shift, wei))
+                                         label, bins, var, cut, shift, wei), 100, map), fExtrapMap(map)
   {
+    std::cout<<"in PredicitonNoExtrap (off before)"<<std::endl;
   }
 
   //----------------------------------------------------------------------
@@ -36,12 +56,26 @@ namespace ana
                                          const SystShifts& shift,
                                          const Var& wei)
     : PredictionExtrap(new TrivialExtrap(loaderNonswap, loaderNue, loaderNuTau,
-                                         axis, cut, shift, wei))
+                                         axis, cut, shift, wei), 0)
+  {
+  }
+
+  PredictionNoExtrap::PredictionNoExtrap(SpectrumLoaderBase& loaderNonswap,
+                                         SpectrumLoaderBase& loaderNue,
+                                         SpectrumLoaderBase& loaderNuTau,
+                       			 const std::string& label,
+                       			 const Binning& bins,
+                       			 const Var& var,
+                                         const Cut& cut,
+                                         const SystShifts& shift,
+                                         const Var& wei)
+    : PredictionExtrap(new TrivialExtrap(loaderNonswap, loaderNue, loaderNuTau,
+                                         HistAxis(label, bins, var), cut, shift, wei), 0)
   {
   }
 
   //----------------------------------------------------------------------
-  PredictionNoExtrap::PredictionNoExtrap(PredictionExtrap* pred) : PredictionExtrap(pred->GetExtrap())
+  PredictionNoExtrap::PredictionNoExtrap(PredictionExtrap* pred) : PredictionExtrap(pred->GetExtrap() , 0)
   {
   }
 
@@ -63,7 +97,7 @@ namespace ana
                                          const Cut& cut,
                                          const SystShifts& shift,
                                          const Var& wei)
-    : PredictionExtrap(new TrivialExtrap(loaders, axis, cut, shift, wei))
+    : PredictionExtrap(new TrivialExtrap(loaders, axis, cut, shift, wei), 0)
   {
   }
 
@@ -87,7 +121,7 @@ namespace ana
   {
     assert(dir->GetDirectory("extrap"));
     IExtrap* extrap = ana::LoadFrom<IExtrap>(dir->GetDirectory("extrap")).release();
-    PredictionExtrap* pred = new PredictionExtrap(extrap);
+    PredictionExtrap* pred = new PredictionExtrap(extrap,0);
     return std::unique_ptr<PredictionNoExtrap>(new PredictionNoExtrap(pred));
   }
 

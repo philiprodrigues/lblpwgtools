@@ -11,6 +11,8 @@
 
 namespace ana
 {
+  class DUNERunPOTSpectrumLoader;
+
   /// \brief Prediction broken down into arbitrary components whose scales can
   /// be varied independently.
   class PredictionScaleComp : public IPrediction

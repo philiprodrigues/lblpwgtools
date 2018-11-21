@@ -43,6 +43,8 @@ namespace ana
   //----------------------------------------------------------------------
   void Progress::SetProgress(double frac)
   {
+
+    std::cout<<"in Progress "<<std::endl;
     if(!fLive || fDone) return;
 
     // Check if we're outputting to a file. If so don't bother showing off
@@ -85,6 +87,7 @@ namespace ana
       fDone = true;
       std::cout << std::endl;
     }
+    std::cout<<"exiting progress() "<<std::endl;
   }
 
   //----------------------------------------------------------------------

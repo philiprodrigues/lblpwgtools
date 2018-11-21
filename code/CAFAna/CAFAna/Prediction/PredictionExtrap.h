@@ -1,5 +1,8 @@
 #pragma once
 
+#include "StandardRecord/StandardRecord.h"
+#include "OscLib/func/IOscCalculator.h"
+
 #include "CAFAna/Prediction/IPrediction.h"
 
 namespace ana
@@ -11,7 +14,8 @@ namespace ana
   {
   public:
     /// Takes ownership of \a extrap
-    PredictionExtrap(IExtrap* extrap);
+    PredictionExtrap(IExtrap* extrap, int offLocation);
+    PredictionExtrap(IExtrap* extrap, int offLocation, std::map <float, std::map <float, std::map<float, float>>> map);
     virtual ~PredictionExtrap();
 
     virtual Spectrum Predict(osc::IOscCalculator* calc) const override;
@@ -29,9 +33,18 @@ namespace ana
 
     PredictionExtrap() = delete;
 
+    float GetOscScale(osc::IOscCalculator* calc, int offLocation, std::map <float, std::map <float, std::map<float, float>>> map) const;
+
     IExtrap* GetExtrap() const {return fExtrap;}
+    IExtrap* GetExtrap(int num) const {return fvExtrap[num];}
+
+    //int pOff;
   protected:
 
     IExtrap* fExtrap;
+    std::vector<IExtrap*> fvExtrap;
+
+    int pOff;
+    std::map <float, std::map <float, std::map<float, float>>> pMap;
   };
 }

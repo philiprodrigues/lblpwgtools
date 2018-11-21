@@ -6,6 +6,8 @@ namespace ana
 {
   class Loaders;
 
+  class DUNERunPOTSpectrumLoader;
+
   /// "Extrapolation" that simply returns the FD MC prediction
   class TrivialExtrap: public IExtrap
   {
@@ -22,11 +24,29 @@ namespace ana
     TrivialExtrap(SpectrumLoaderBase& loaderNonswap,
                   SpectrumLoaderBase& loaderNue,
                   SpectrumLoaderBase& loaderNuTau,
+                  const HistAxis& axis,
+                  const Cut& cut,
+                  const SystShifts& shift, int offLocation,
+                  const Var& wei);
+
+    TrivialExtrap(SpectrumLoaderBase& loaderNonswap,
+                  SpectrumLoaderBase& loaderNue,
+                  SpectrumLoaderBase& loaderNuTau,
                   std::string label,
                   const Binning& bins,
                   const Var& var,
                   const Cut& cut,
                   const SystShifts& shift,
+                  const Var& wei);
+
+    TrivialExtrap(SpectrumLoaderBase& loaderNonswap,
+                  SpectrumLoaderBase& loaderNue,
+                  SpectrumLoaderBase& loaderNuTau,
+                  std::string label,
+                  const Binning& bins,
+                  const Var& var,
+                  const Cut& cut,
+                  const SystShifts& shift, int offLocation,
                   const Var& wei);
 
     TrivialExtrap(Loaders& loaders,
@@ -38,10 +58,25 @@ namespace ana
                   const Var& wei = kUnweighted);
 
     TrivialExtrap(Loaders& loaders,
+                  std::string label,
+                  const Binning& bins,
+                  const Var& var,
+                  const Cut& cut,
+                  const SystShifts& shift = kNoShift, int offLocation=0,
+                  const Var& wei = kUnweighted);
+
+    TrivialExtrap(Loaders& loaders,
                   const HistAxis& axis,
                   const Cut& cut,
                   const SystShifts& shift = kNoShift,
                   const Var& wei = kUnweighted);
+
+    TrivialExtrap(Loaders& loaders,
+                  const HistAxis& axis,
+                  const Cut& cut,
+                  const SystShifts& shift = kNoShift, int offLocation=0,
+                  const Var& wei = kUnweighted);
+
 
     virtual OscillatableSpectrum NueSurvComponent()       {return fNueSurv;}
     virtual OscillatableSpectrum AntiNueSurvComponent()   {return fNueSurvAnti;}
