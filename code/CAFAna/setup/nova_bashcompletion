@@ -1,0 +1,80 @@
+#!/bin/sh
+
+# Bash completion for nova-art
+# Justin Vasel <jvasel@indiana.edu>
+#
+# To use, source this file OR 'export NOVA_BASH_COMPLETION=true' in your
+# .bashrc to pick it up next time you setup_nova
+#
+# Then try:
+#   nova -[TAB][TAB]                         (short options completion)
+#   nova --[TAB][TAB]                        (long options completion)
+#   nova (-c|--config) [TAB][TAB]            (fcl completion)
+#   nova (-s|--source) [TAB][TAB]            (source .raw/.root completion)
+#   nova (-c|--config) <job.fcl> [TAB][TAB]  (source .raw/.root completion))
+
+nova_bashcompletion()
+{
+    local cur prev command fcl_paths
+
+    # Magic. Do not touch.
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+
+    # CASE: short options completion
+    #   nova -[TAB][TAB]
+    if [[ ${cur} == "-" ]]; then
+      command="$(nova --help | grep -E --only-matching '^\s+-([a-z]|[A-Z])' | awk '{print $1}' | sort --ignore-case)"
+      COMPREPLY=( $(compgen -W "${command}" -- ${cur}) )
+
+      return 0
+    fi
+
+
+    # CASE: long options completion
+    #   nova --[TAB][TAB]
+    if [[ ${cur} == "--"* ]]; then
+      command="$(nova --help | grep -E --only-matching '\s+--.*' | awk '{print $1}' | sort --ignore-case)"
+      COMPREPLY=( $(compgen -W "${command}" -- ${cur}) )
+
+      return 0
+    fi
+
+
+    # CASE: fcl completion
+    #   NOTE: returns all lowercase fcls from PWD & PRIVATE/PUBLIC contexts
+    #   nova (-c|--config) [TAB][TAB]
+    if [[ ${prev} == "-c" ]] || [[ ${prev} == "--config" ]]; then
+      command="$(find . $SRT_PRIVATE_CONTEXT/job $SRT_PUBLIC_CONTEXT/job -regextype posix-extended -type f -regex '.*\.fcl' -printf '%f\n' | sort | uniq | egrep '^[[:lower:]]+\.fcl$')"
+      COMPREPLY=( $(compgen -W "${command}" -- ${cur}) )
+
+      return 0
+    fi
+
+
+    # CASE: source file (.raw/.root) completion (using -s flag).
+    #   nova (-s|--source) [TAB][TAB]
+    if [[ ${prev} == "-s" ]] || [[ ${prev} == "--source" ]]; then
+      command="$(find ./ -maxdepth 1 -type f \( -iname \*.root -o -iname \*.raw \) ! -name 'RootOutput*.root' ! -name 'TFileService*.root'  -printf '%f\n')"
+      COMPREPLY=( $(compgen -W "${command}" -- ${cur}) )
+
+      return 0
+    fi
+
+
+    # CASE: source file (.raw/.root) completion (without flag).
+    #   nova -c <job.fcl> [TAB][TAB]
+    if [[ ${prev} == *".fcl" ]]; then
+      command="$(find ./ -maxdepth 1 -type f \( -iname \*.root -o -iname \*.raw \) ! -name 'RootOutput*.root' ! -name 'TFileService*.root'  -printf '%f\n')"
+      COMPREPLY=( $(compgen -W "${command}" -- ${cur}) )
+
+      return 0
+    fi
+
+}
+
+# Bind this function to nova
+# the "default" option returns a list of files in pwd if this script finds
+# no completions
+complete -o default -F nova_bashcompletion nova

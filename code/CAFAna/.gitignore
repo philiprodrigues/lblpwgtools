@@ -1,8 +1,6 @@
 # SRT artifacts
-nova_srt_bootstrap
 packages/
 releases/
-setup/
 srt/
 update-release
 

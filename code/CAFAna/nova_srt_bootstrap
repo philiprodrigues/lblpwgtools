@@ -1,0 +1,164 @@
+#!/bin/sh   
+       
+# Create SRT environment on this machine. 
+#
+# ./nova_srt_boostrap [directory_name]
+# 
+# Your srt will end up in /usr/local/nova (default)
+#                    or in SRT_DIST if defined
+#                    or in 'directory_name' specified on the command line
+#
+
+# Some hard coded values unlikely to change very frequently:
+srt_cvsroot=":pserver:anonymous@srtcvs.fnal.gov:/srtcvs"
+nova_svnanon="http://cdcvs.fnal.gov/subversion/novaart.pkgs.svn"
+nova_svnroot="svn+ssh://p-novaart@cdcvs.fnal.gov/cvs/projects/novaart/pkgs.svn"
+SoftRelToolsTag="HEAD" 
+setupTag="HEAD" 
+########################################################################
+
+main () {
+    if [ -n "$GATEWAY_INTERFACE" ] ; then
+	lt="&lt;"
+	gt="&gt;"
+    else
+	lt="<"
+	gt=">"
+    fi
+
+
+    if [ "$1" = "-v" ] ; then verbose=yes ; shift ; fi
+
+    msrt_bootstrap $@
+}
+
+MKDIR () { 
+    if [ ! -d $1 ] ; then mkdir -p $1 ; fi 
+}
+MAKE () { 
+    makes="/usr/bin/gmake /usr/bin/make /usr/local/bin/gmake /usr/local/bin/make"
+    for mk in $makes ; do
+	if [ -x $mk ] ; then $mk $@ ; return ; fi
+    done
+    # last resort:
+    gmake $@
+}
+anoncvs () {
+    cvsroot=$1 ; shift
+    grep -q $cvsroot $HOME/.cvspass > /dev/null 2>&1
+    if [ ! $? ] ; then
+	echo
+	echo "Please type \"anoncvs\" at the \"CVS password:\" prompt."
+	echo
+        cvs -d $cvsroot login
+    fi
+    if [ "$verbose" = "yes" ] ; then 
+	echo "cvs -d $cvsroot $@"
+	cvs -d $cvsroot $@
+    else
+	cvs -d $cvsroot $@ > /dev/null
+    fi
+}
+
+###
+# Do a "cvs checkout" of the SRT_DIST/setup files
+###
+checkout_setup_files () {
+    return
+#    srt_dist=$1 ; shift
+#    wd=`pwd`
+#    cd $srt_dist
+
+#    svn checkout $nova_svnanon/trunk/setup
+#    cd $wd
+}
+
+###
+# Get the main SRT stuff.  This replaces the need for the .tar file
+# args SRT_DIST
+###
+checkout_srt_files () {
+    srt_dist="$1" ; shift
+
+    wd=`pwd`
+
+    # Create "boot" release
+    MKDIR $srt_dist/packages/SoftRelTools
+    echo ':pserver:anonymous@srtcvs.fnal.gov:/srtcvs Ay=0=h<Z' >> ${HOME}/.cvspass
+    cd $srt_dist/packages/SoftRelTools
+    anoncvs $srt_cvsroot get -d $SoftRelToolsTag -r $SoftRelToolsTag SoftRelTools
+    echo $srt_cvsroot > $srt_dist/packages/SoftRelTools/cvsroot
+ 
+    # unpack the boot release
+    MKDIR $srt_dist/releases/
+    cd $srt_dist/releases/
+    tar -xvf $srt_dist/packages/SoftRelTools/$SoftRelToolsTag/install/boot_release.tar
+
+    #update the tag of SoftRelTools
+    rm $srt_dist/releases/boot/SoftRelTools
+    cd boot
+    ln -s   ../../packages/SoftRelTools/$SoftRelToolsTag $srt_dist/releases/boot/SoftRelTools
+
+    # update srt/ files
+    MKDIR $srt_dist/srt
+    cd $srt_dist/srt
+    cp $srt_dist/releases/boot/SoftRelTools/install/srt/* .
+
+    SRT_DIST=$srt_dist
+    export SRT_DIST
+    ./install -c $nova_svnroot -p NOVA
+    cat >> srt_envrc <<EOF
+DEFAULT_SRT_CXX=GCC
+DEFAULT_SRT_BASE_RELEASE=development
+EOF
+	
+    cd $wd
+}
+
+msrt_bootstrap () {
+
+    # Set SRT location
+    #   default is /usr/local/nova
+    #   use SRT_DIST environment variable, if present
+    #   use command line argument, if present (overrides SRT_DIST environment)
+    if [ "$1" ];        then srt_dist=$1
+    elif [ $SRT_DIST ]; then srt_dist=$SRT_DIST
+    else                     srt_dist='/usr/local/nova'
+    fi
+
+    # now make srt_dist an absolute path if it was given relative:
+    case "$srt_dist" in
+      /*)
+           ;;
+      *)
+           srt_dist="$PWD/$srt_dist"
+           ;;
+    esac
+
+    if [ -z $CVS_RSH ] ; then
+       CVS_RSH=ssh
+       export CVS_RSH
+    fi
+
+    MKDIR $srt_dist
+
+    checkout_srt_files $srt_dist 
+    cd $srt_dist/..
+
+    checkout_setup_files $srt_dist
+
+    cat <<EOF
+***************************************************************************
+SRT has been installed in:
+$SRT_DIST
+
+You should now create a setup script in $SRT_DIST/bin specifically for
+your local machine. 
+
+***************************************************************************
+EOF
+
+}
+
+
+main $@

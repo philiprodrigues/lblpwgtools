@@ -11,22 +11,21 @@ fi
 
 ### Initial setup and build of novasoft subset ###
 
-rm -f nova_srt_bootstrap
-wget https://cdcvs.fnal.gov/redmine/projects/novaart/repository/raw/trunk/SRT_NOVA/scripts/nova_srt_bootstrap || exit 1
+#rm -f nova_srt_bootstrap
+#wget https://cdcvs.fnal.gov/redmine/projects/novaart/repository/raw/trunk/SRT_NOVA/scripts/nova_srt_bootstrap || exit 1
 
-chmod +x nova_srt_bootstrap || exit 1
+#chmod +x nova_srt_bootstrap || exit 1
 
 ./nova_srt_bootstrap . || exit 1
 
 source srt/srt.sh || exit 1
 
-cat <<EOF > setup/packages-development
-OscLib : HEAD
-SoftRelTools : HEAD
-SRT_NOVA : HEAD
-Utilities : HEAD
-setup : HEAD
-EOF
+#cat <<EOF > setup/packages-development
+#OscLib : HEAD
+#SoftRelTools : HEAD
+#SRT_NOVA : HEAD
+#Utilities : HEAD
+#EOF
 
 rm -f update-release || exit 1
 wget https://cdcvs.fnal.gov/redmine/projects/novaart/repository/raw/trunk/SRT_NOVA/scripts/update-release || exit 1
@@ -34,6 +33,17 @@ wget https://cdcvs.fnal.gov/redmine/projects/novaart/repository/raw/trunk/SRT_NO
 chmod +x update-release || exit 1
 
 ./update-release -rel development || exit 1
+
+
+### Link our own stuff in ###
+cd releases/development
+ln -s ../../StandardRecord .
+ln -s ../../CAFAna .
+ln -s ../../setup
+cd include
+ln -s ../StandardRecord .
+ln -s ../CAFAna .
+cd ../../..
 
 export CVMFS_DISTRO_BASE=/cvmfs/nova.opensciencegrid.org/ || exit 1
 source setup/setup_nova.sh -b maxopt -6 $SRT_DIST -e $CVMFS_DISTRO_BASE/externals/ || exit 1
@@ -57,17 +67,6 @@ cat <<EOF > OscLib/GNUmakefile
 SUBDIRS := func
 include SoftRelTools/standard.mk
 EOF
-
-
-### Link our own stuff in ###
-
-ln -s ../../StandardRecord .
-ln -s ../../CAFAna .
-cd include/
-ln -s ../StandardRecord .
-ln -s ../CAFAna/
-cd ..
-
 
 ### Do the initial build ###
 

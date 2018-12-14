@@ -1,0 +1,8 @@
+root             v6_12_06a   -q+prof:+e15
+library_shim
+NovaGridUtils
+boost            v1_66_0a    -q+prof:+e15
+ifdh_art         v2_06_01    -q+prof:+e15:+s67
+gdb		 v8_0_1
+valgrind	 v3_13_0
+gperftools       v08.00
