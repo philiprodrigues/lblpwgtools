@@ -391,6 +391,9 @@ void Fitter::DecodePars(const double *pars) const {
 double Fitter::DoEval(const double *pars) const {
   ++fNEval;
 
+  // PAR 2019-09-25 Exit early because I'm impatient
+  if(fNEval>10000) exit(0);
+
   DecodePars(pars); // Updates fCalc and fShifts
 
   // Have to re-fetch the values because DecodePars() will have truncated
