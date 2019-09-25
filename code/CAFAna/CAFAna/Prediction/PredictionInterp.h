@@ -215,7 +215,7 @@ namespace ana
   //----------------------------------------------------------------------
   virtual inline Spectrum ShiftSpectrum(const Spectrum &s, CoeffsType type,
                                            bool nubar,
-                                           const SystShifts &shift) const {
+                                           const SystShifts &shift) const __attribute__((always_inline)) {
     if (nubar)
       assert(fSplitBySign);
 
@@ -300,7 +300,7 @@ namespace ana
                    Flavors::Flavors_t flav,
                    Current::Current_t curr,
                    Sign::Sign_t sign,
-                   CoeffsType type) const
+                   CoeffsType type) const __attribute__((always_inline))
   {
     if(fSplitBySign && sign == Sign::kBoth){
       return (ShiftedComponent(calc, hash, shift, flav, curr, Sign::kAntiNu, type)+
