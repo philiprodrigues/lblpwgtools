@@ -11,9 +11,15 @@ namespace ana
       double a, b, c, d;
     };
 
-    void ShiftSpectrumKernel(const Coeffs* fits,
+    inline void ShiftSpectrumKernel(const Coeffs* fits,
                              unsigned int N,
                              double x, double x2, double x3,
-                             double* corr);
+                             double* corr)
+    {
+      for(unsigned int n = 0; n < N; ++n){
+        const Coeffs& f = fits[n];
+        corr[n] *= f.a*x3 + f.b*x2 + f.c*x + f.d;
+      } // end for n
+    }
   }
 }

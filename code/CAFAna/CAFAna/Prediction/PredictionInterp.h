@@ -7,10 +7,15 @@
 #include "CAFAna/Core/SpectrumLoader.h"
 #include "CAFAna/Core/SystShifts.h"
 
+
+#include "OscLib/func/IOscCalculator.h"
+#include "Utilities/func/MathUtil.h"
+
 #include <map>
 #include <memory>
 
 #include "TMD5.h"
+#include "TH1D.h"
 
 class TH1;
 
@@ -47,20 +52,64 @@ namespace ana
     virtual ~PredictionInterp();
 
 
+    //----------------------------------------------------------------------
+    virtual inline Spectrum PredictComponentSyst(osc::IOscCalculator* calc,
+                                                    const SystShifts& shift,
+                                                    Flavors::Flavors_t flav,
+                                                    Current::Current_t curr,
+                                                    Sign::Sign_t sign) const override
+      {
+        InitFits();
 
-    virtual Spectrum Predict(osc::IOscCalculator* calc) const override;
-    virtual Spectrum PredictSyst(osc::IOscCalculator* calc,
-                                 const SystShifts& shift) const override;
+        Spectrum& ret = fBinning;
+        ret.Clear();
 
-    virtual Spectrum PredictComponent(osc::IOscCalculator* calc,
-                                      Flavors::Flavors_t flav,
-                                      Current::Current_t curr,
-                                      Sign::Sign_t sign) const override;
-    virtual Spectrum PredictComponentSyst(osc::IOscCalculator* calc,
-                                          const SystShifts& shift,
-                                          Flavors::Flavors_t flav,
-                                          Current::Current_t curr,
-                                          Sign::Sign_t sign) const override;
+        if(ret.POT()==0) ret.OverridePOT(1e24);
+
+        // Check that we're able to handle all the systs we were passed
+        for(const ISyst* syst: shift.ActiveSysts()){
+          if(find_pred(syst) == fPreds.end()){
+            std::cerr << "This PredictionInterp is not set up to handle the requested systematic: " << syst->ShortName() << std::endl;
+            abort();
+          }
+        } // end for syst
+
+
+        const TMD5* hash = calc ? calc->GetParamsHash() : 0;
+
+        if(curr & Current::kCC){
+          if(flav & Flavors::kNuEToNuE)    ret += ShiftedComponent(calc, hash, shift, Flavors::kNuEToNuE,    Current::kCC, sign, kNueSurv);
+          if(flav & Flavors::kNuEToNuMu)   ret += ShiftedComponent(calc, hash, shift, Flavors::kNuEToNuMu,   Current::kCC, sign, kOther  );
+          if(flav & Flavors::kNuEToNuTau)  ret += ShiftedComponent(calc, hash, shift, Flavors::kNuEToNuTau,  Current::kCC, sign, kOther  );
+
+          if(flav & Flavors::kNuMuToNuE)   ret += ShiftedComponent(calc, hash, shift, Flavors::kNuMuToNuE,   Current::kCC, sign, kNueApp  );
+          if(flav & Flavors::kNuMuToNuMu)  ret += ShiftedComponent(calc, hash, shift, Flavors::kNuMuToNuMu,  Current::kCC, sign, kNumuSurv);
+          if(flav & Flavors::kNuMuToNuTau) ret += ShiftedComponent(calc, hash, shift, Flavors::kNuMuToNuTau, Current::kCC, sign, kOther   );
+        }
+        if(curr & Current::kNC){
+          assert(flav == Flavors::kAll); // Don't know how to calculate anything else
+
+          ret += ShiftedComponent(calc, hash, shift, Flavors::kAll, Current::kNC, sign, kNC);
+        }
+
+        delete hash;
+
+        return ret;
+      }
+
+    // virtual Spectrum Predict(osc::IOscCalculator* calc) const override;
+    // virtual Spectrum PredictSyst(osc::IOscCalculator* calc,
+    //                              const SystShifts& shift) const override;
+
+    // virtual Spectrum PredictComponent(osc::IOscCalculator* calc,
+    //                                   Flavors::Flavors_t flav,
+    //                                   Current::Current_t curr,
+    //                                   Sign::Sign_t sign) const override;
+    // virtual Spectrum PredictComponentSyst(osc::IOscCalculator* calc,
+    //                                       const SystShifts& shift,
+    //                                       Flavors::Flavors_t flav,
+    //                                       Current::Current_t curr,
+    //                                       Sign::Sign_t sign) const override;
 
     virtual void Derivative(osc::IOscCalculator* calc,
                             const SystShifts& shift,
@@ -136,19 +185,173 @@ namespace ana
                  Sign::Sign_t sign,
                  const std::string& systName) const;
 
-    Spectrum ShiftSpectrum(const Spectrum& s,
-                           CoeffsType type,
-                           bool nubar, // try to use fitsNubar if it exists
-                           const SystShifts& shift) const;
+  //----------------------------------------------------------------------
+  virtual inline Spectrum Predict(osc::IOscCalculator* calc) const override
+  {
+    return fPredNom->Predict(calc);
+  }
 
-    /// Helper for PredictComponentSyst
-    Spectrum ShiftedComponent(osc::IOscCalculator* calc,
-                              const TMD5* hash,
-                              const SystShifts& shift,
-                              Flavors::Flavors_t flav,
-                              Current::Current_t curr,
-                              Sign::Sign_t sign,
-                              CoeffsType type) const;
+  //----------------------------------------------------------------------
+  virtual inline Spectrum PredictComponent(osc::IOscCalculator* calc,
+                                              Flavors::Flavors_t flav,
+                                              Current::Current_t curr,
+                                              Sign::Sign_t sign) const override
+  {
+    return fPredNom->PredictComponent(calc, flav, curr, sign);
+  }
+
+  //----------------------------------------------------------------------
+  virtual inline Spectrum PredictSyst(osc::IOscCalculator* calc,
+                                         const SystShifts& shift) const override
+  {
+    InitFits();
+
+    return PredictComponentSyst(calc, shift,
+                                Flavors::kAll,
+                                Current::kBoth,
+                                Sign::kBoth);
+  }
+
+  //----------------------------------------------------------------------
+  virtual inline Spectrum ShiftSpectrum(const Spectrum &s, CoeffsType type,
+                                           bool nubar,
+                                           const SystShifts &shift) const {
+    if (nubar)
+      assert(fSplitBySign);
+
+    // TODO histogram operations could be too slow
+    TH1D *h = s.ToTH1(s.POT());
+
+    const unsigned int N = h->GetNbinsX() + 2;
+#ifdef USE_PREDINTERP_OMP
+    double corr[4][N];
+    for (unsigned int i = 0; i < 4; ++i) {
+      for (unsigned int j = 0; j < N; ++j) {
+        corr[i][j] = 1;
+      };
+    }
+#else
+    double corr[N];
+    for (unsigned int i = 0; i < N; ++i) {
+      corr[i] = 1;
+    }
+#endif
+
+    size_t NPreds = fPreds.size();
+
+    #pragma omp parallel for
+    for (size_t p_it = 0; p_it < NPreds; ++p_it) {
+      const ISyst *syst = fPreds[p_it].first;
+      const ShiftedPreds &sp = fPreds[p_it].second;
+
+      double x = shift.GetShift(syst);
+
+      if (x == 0)
+        continue;
+
+      int shiftBin = (x - sp.shifts[0]) / sp.Stride();
+      shiftBin = std::max(0, shiftBin);
+      shiftBin = std::min(shiftBin, sp.nCoeffs - 1);
+
+      const Coeffs *fits = nubar ? &sp.fitsNubarRemap[type][shiftBin].front()
+                                 : &sp.fitsRemap[type][shiftBin].front();
+
+      x -= sp.shifts[shiftBin];
+
+      const double x_cube = util::cube(x);
+      const double x_sqr = util::sqr(x);
+
+#ifdef USE_PREDINTERP_OMP
+      ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube,
+                          corr[omp_get_thread_num()]);
+#else
+      ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube, corr);
+#endif
+    } // end for syst
+
+#ifdef USE_PREDINTERP_OMP
+    for (unsigned int i = 1; i < 4; ++i) {
+      for (unsigned int j = 0; j < N; ++j) {
+        corr[0][j] *= corr[i][j];
+      };
+    }
+#endif
+
+    double *arr = h->GetArray();
+    for (unsigned int n = 0; n < N; ++n) {
+      if (arr[n] > fMinMCStats) {
+#ifdef USE_PREDINTERP_OMP
+        arr[n] *= std::max(corr[0][n], 0.);
+#else
+        arr[n] *= std::max(corr[n], 0.);
+#endif
+      }
+    }
+
+    return Spectrum(std::unique_ptr<TH1D>(h), s.GetLabels(), s.GetBinnings(),
+                    s.POT(), s.Livetime());
+  }
+
+  //----------------------------------------------------------------------
+  virtual inline Spectrum 
+  ShiftedComponent(osc::IOscCalculator* calc,
+                   const TMD5* hash,
+                   const SystShifts& shift,
+                   Flavors::Flavors_t flav,
+                   Current::Current_t curr,
+                   Sign::Sign_t sign,
+                   CoeffsType type) const
+  {
+    if(fSplitBySign && sign == Sign::kBoth){
+      return (ShiftedComponent(calc, hash, shift, flav, curr, Sign::kAntiNu, type)+
+              ShiftedComponent(calc, hash, shift, flav, curr, Sign::kNu,     type));
+    }
+
+    // Must be the base case of the recursion to use the cache. Otherwise we
+    // can cache systematically shifted versions of our children, which is
+    // wrong. Also, some calculators won't hash themselves.
+    const bool canCache = (hash != 0);
+
+    const Key_t key = {flav, curr, sign};
+    auto it = fNomCache.find(key);
+
+    // Should the interpolation use the nubar fits?
+    const bool nubar = (fSplitBySign && sign == Sign::kAntiNu);
+
+    // We have the nominal for this exact combination of flav, curr, sign, calc
+    // stored.  Shift it and return.
+    if(canCache && it != fNomCache.end() && it->second.hash == *hash){
+      return ShiftSpectrum(it->second.nom, type, nubar, shift);
+    }
+
+    // We need to compute the nominal again for whatever reason
+    const Spectrum nom = fPredNom->PredictComponent(calc, flav, curr, sign);
+
+    if(canCache){
+      // Insert into the cache if not already there, or update if there but
+      // with old oscillation parameters.
+      if(it == fNomCache.end())
+        fNomCache.emplace(key, Val_t({*hash, nom}));
+      else
+        it->second = {*hash, nom};
+    }
+
+    return ShiftSpectrum(nom, type, nubar, shift);
+  }
+
+    // Spectrum ShiftSpectrum(const Spectrum& s,
+    //                        CoeffsType type,
+    //                        bool nubar, // try to use fitsNubar if it exists
+    //                        const SystShifts& shift) const;
+
+    // /// Helper for PredictComponentSyst
+    // Spectrum ShiftedComponent(osc::IOscCalculator* calc,
+    //                           const TMD5* hash,
+    //                           const SystShifts& shift,
+    //                           Flavors::Flavors_t flav,
+    //                           Current::Current_t curr,
+    //                           Sign::Sign_t sign,
+    //                           CoeffsType type) const;
 
     std::unique_ptr<IPrediction> fPredNom; ///< The nominal prediction
 
