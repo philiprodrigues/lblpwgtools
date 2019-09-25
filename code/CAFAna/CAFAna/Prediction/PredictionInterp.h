@@ -214,8 +214,8 @@ namespace ana
 
   //----------------------------------------------------------------------
   virtual inline Spectrum ShiftSpectrum(const Spectrum &s, CoeffsType type,
-                                           bool nubar,
-                                           const SystShifts &shift) const __attribute__((always_inline)) {
+                                          bool nubar,
+                                          const SystShifts &shift) const __attribute__((always_inline)) {
     if (nubar)
       assert(fSplitBySign);
 
@@ -231,7 +231,7 @@ namespace ana
       };
     }
 #else
-    double corr[N];
+    alignas(64) double corr[N];
     for (unsigned int i = 0; i < N; ++i) {
       corr[i] = 1;
     }
