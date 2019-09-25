@@ -2,7 +2,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/gperftools.cmake)
 
 set(CXX_WARNINGS -Wall -Wextra -Wno-unused-result -Wno-unknown-pragmas)
 
-LIST(APPEND EXTRA_CXX_FLAGS ${CXX_WARNINGS} -Werror -Wno-delete-non-virtual-dtor -Wno-unused "-D__FILENAME__=\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"")
+LIST(APPEND EXTRA_CXX_FLAGS ${CXX_WARNINGS} -O3 -Werror -Wno-delete-non-virtual-dtor -Wno-unused "-D__FILENAME__=\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"")
 
 if(KNL)
   LIST(APPEND EXTRA_CXX_FLAGS -march=knl)
