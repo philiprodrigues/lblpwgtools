@@ -1,7 +1,7 @@
 include(${CMAKE_SOURCE_DIR}/cmake/gperftools.cmake)
 
 set(CXX_WARNINGS -Wall -Wextra -Wno-unused-result -Wno-unknown-pragmas)
-set(EXTRA_LINK_FLAGS -flto)
+set(STR_EXTRA_LINK_FLAGS -flto)
 
 LIST(APPEND EXTRA_CXX_FLAGS ${CXX_WARNINGS} -O3 -march=native -mtune=native -flto -Werror -Wno-delete-non-virtual-dtor -Wno-unused "-D__FILENAME__=\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"")
 
@@ -32,7 +32,8 @@ BuildFlagString(STR_EXTRA_LINK_FLAGS " " ${EXTRA_LINK_FLAGS})
 
 CatStringsIfNotEmpty(CMAKE_LINK_FLAGS
   ${CMAKE_LINK_FLAGS}
-  ${STR_EXTRA_LINK_FLAGS})
+  ${STR_EXTRA_LINK_FLAGS}
+  -flto)
 
 get_directory_property(CAFANA_INCLUDE_DIRS INCLUDE_DIRECTORIES)
 

@@ -69,7 +69,8 @@ include_directories(
   ${BOOST_INC})
 
 LIST(APPEND EXTRA_CXX_FLAGS -DDONT_USE_SAM=1 -DUSE_CAFANA_ENVVAR=1 -DDONT_USE_FQ_HARDCODED_SYST_PATHS=1 -DALLOW_XROOTD_PATH_THROUGH_WILDCARDSOURCE=1)
-
+LIST(APPEND CMAKE_EXE_LINKER_FLAGS -flto)
+LIST(APPEND CMAKE_SHARED_LINKER_FLAGS -flto)
 include(${CMAKE_SOURCE_DIR}/cmake/c++CompilerSetup.cmake)
 ################################################################################
 
