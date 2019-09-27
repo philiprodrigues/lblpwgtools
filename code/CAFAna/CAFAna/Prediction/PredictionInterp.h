@@ -126,6 +126,7 @@ namespace ana
 			     std::vector<const ISyst*> veto = {});
 
     typedef ana::PredIntKern::Coeffs Coeffs;
+    typedef ana::PredIntKern::CoeffsAVX2 CoeffsAVX2;
 
     /// Find coefficients describing this set of shifts
     std::vector<std::vector<Coeffs>>
@@ -205,6 +206,12 @@ namespace ana
       // [type][shift bin][histogram bin]. TODO this is ugly
       std::vector<std::vector<std::vector<Coeffs>>> fitsRemap;
       std::vector<std::vector<std::vector<Coeffs>>> fitsNubarRemap;
+
+      // Same info as above but with CoeffsAVX2. Index order
+      // [type][shift bin][histogram bin]. TODO this is even uglier
+      std::vector<std::vector<std::vector<CoeffsAVX2>>> fitsRemapAVX2;
+      std::vector<std::vector<std::vector<CoeffsAVX2>>> fitsNubarRemapAVX2;
+
       ShiftedPreds() {}
       ShiftedPreds(ShiftedPreds &&other)
           : systName(std::move(other.systName)),
@@ -365,6 +372,9 @@ namespace ana
                                           bool nubar,
                                           const SystShifts &shift) const __attribute__((always_inline)) {
 
+    static int ncall=0;
+    ++ncall;
+
     if (nubar)
       assert(fSplitBySign);
 
@@ -383,8 +393,10 @@ namespace ana
     }
 #else
     alignas(64) double corr[N];
+    alignas(64) double corrAVX2[N];
     for (unsigned int i = 0; i < N; ++i) {
       corr[i] = 1;
+      corrAVX2[i] = 1;
     }
 #endif
 
@@ -420,8 +432,11 @@ namespace ana
 
       int shiftBin = fShiftBins[p_it];
 
-      const Coeffs *fits = nubar ? &sp.fitsNubarRemap[type][shiftBin].front()
-                                 : &sp.fitsRemap[type][shiftBin].front();
+      // const Coeffs *fits = nubar ? &sp.fitsNubarRemap[type][shiftBin].front()
+      //                            : &sp.fitsRemap[type][shiftBin].front();
+
+      const CoeffsAVX2 *fitsAVX2 = nubar ? &sp.fitsNubarRemapAVX2[type][shiftBin].front()
+                                     : &sp.fitsRemapAVX2[type][shiftBin].front();
 
       x -= sp.shifts[shiftBin];
 
@@ -432,7 +447,21 @@ namespace ana
       ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube,
                           corr[omp_get_thread_num()]);
 #else
-      ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube, corr);
+      // ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube, corr);
+      ShiftSpectrumKernelAVX2(fitsAVX2, N/4, x, x_sqr, x_cube, corrAVX2);
+      // if(ncall<3){
+      //   std::cout << "Syst " << p_it << std::endl;
+      //   std::cout << "corr: ";
+      //   for(unsigned int i=0; i<std::min(10u, N); ++i){
+      //     printf("%.3f\t", corr[i]);
+      //   }
+      //   std::cout << std::endl;
+      //   std::cout << "AVX2: ";
+      //   for(unsigned int i=0; i<std::min(10u, N); ++i){
+      //     printf("%.3f\t", corrAVX2[i]);
+      //   }
+      //   std::cout << std::endl;
+      // }
 #endif
     } // end for syst
 
