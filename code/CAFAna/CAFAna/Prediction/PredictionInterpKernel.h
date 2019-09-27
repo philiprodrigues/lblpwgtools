@@ -8,8 +8,7 @@ namespace ana
     struct Coeffs{
       Coeffs(double _a, double _b, double _c, double _d)
         : a(_a), b(_b), c(_c), d(_d) {}
-      alignas(64) double a;
-      double b, c, d;
+      double a, b, c, d;
     };
 
     inline void ShiftSpectrumKernel(const Coeffs* __restrict__ fits,
