@@ -263,6 +263,12 @@ namespace ana
         }
       }
 
+      // std::cout << "sp.fitsRemap.size() is " << sp.fitsRemap.size() << std::endl;
+      // std::cout << "sp.fitsRemap[0].size() is " << sp.fitsRemap[0].size() << std::endl;
+      // for(auto& it: sp.fitsRemap[0]){
+      //   std::cout << "  sp.fitsRemap[0][i].size() is " << it.size() << std::endl;
+      // }
+
       sp.fitsNubarRemap.resize(sp.fitsNubar.size());
       for(auto& it: sp.fitsNubarRemap){
         it.resize(sp.fitsNubar[0][0].size());
