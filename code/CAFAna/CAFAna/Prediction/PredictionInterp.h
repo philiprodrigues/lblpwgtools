@@ -240,15 +240,15 @@ namespace ana
         const bool nubar = (fSplitBySign && sign == Sign::kAntiNu);
 
         if(curr & Current::kCC){
-          if(flav & Flavors::kNuMuToNuE)   PrefetchCoeffs(kNueApp,   nubar, shift);
+          // if(flav & Flavors::kNuMuToNuE)   PrefetchCoeffs(kNueApp,   nubar, shift);
 
           if(flav & Flavors::kNuEToNuE)    ret += ShiftedComponent(calc, hash, shift, Flavors::kNuEToNuE,    Current::kCC, sign, kNueSurv);
 
-          if(flav & Flavors::kNuMuToNuMu)  PrefetchCoeffs(kNumuSurv, nubar, shift);
+          // if(flav & Flavors::kNuMuToNuMu)  PrefetchCoeffs(kNumuSurv, nubar, shift);
 
           if(flav & Flavors::kNuEToNuMu)   ret += ShiftedComponent(calc, hash, shift, Flavors::kNuEToNuMu,   Current::kCC, sign, kOther  );
 
-          if(flav & Flavors::kNuMuToNuTau) PrefetchCoeffs(kOther,    nubar, shift);
+          // if(flav & Flavors::kNuMuToNuTau) PrefetchCoeffs(kOther,    nubar, shift);
 
           if(flav & Flavors::kNuEToNuTau)  ret += ShiftedComponent(calc, hash, shift, Flavors::kNuEToNuTau,  Current::kCC, sign, kOther  );
 
