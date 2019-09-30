@@ -488,6 +488,8 @@ int main(int argc, char const *argv[]) {
     return 0;
   }
 
+  gRNGSeed = 100;
+
   std::string stateFname = (argc > 1) ? argv[1] : def_stateFname;
   std::string outputFname = (argc > 2) ? argv[2] : def_outputFname;
   int nthrows = (argc > 3) ? atoi(argv[3]) : def_nthrows;
