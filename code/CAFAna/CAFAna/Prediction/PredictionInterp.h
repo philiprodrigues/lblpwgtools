@@ -51,22 +51,6 @@ namespace ana
 
     virtual ~PredictionInterp();
 
-
-
-    // virtual Spectrum Predict(osc::IOscCalculator* calc) const override;
-    // virtual Spectrum PredictSyst(osc::IOscCalculator* calc,
-    //                              const SystShifts& shift) const override;
-
-    // virtual Spectrum PredictComponent(osc::IOscCalculator* calc,
-    //                                   Flavors::Flavors_t flav,
-    //                                   Current::Current_t curr,
-    //                                   Sign::Sign_t sign) const override;
-    // virtual Spectrum PredictComponentSyst(osc::IOscCalculator* calc,
-    //                                       const SystShifts& shift,
-    //                                       Flavors::Flavors_t flav,
-    //                                       Current::Current_t curr,
-    //                                       Sign::Sign_t sign) const override;
-
     virtual void Derivative(osc::IOscCalculator* calc,
                             const SystShifts& shift,
                             double pot,
@@ -168,22 +152,6 @@ namespace ana
                                 Current::kBoth,
                                 Sign::kBoth);
   }
-
-
-
-    // Spectrum ShiftSpectrum(const Spectrum& s,
-    //                        CoeffsType type,
-    //                        bool nubar, // try to use fitsNubar if it exists
-    //                        const SystShifts& shift) const;
-
-    // /// Helper for PredictComponentSyst
-    // Spectrum ShiftedComponent(osc::IOscCalculator* calc,
-    //                           const TMD5* hash,
-    //                           const SystShifts& shift,
-    //                           Flavors::Flavors_t flav,
-    //                           Current::Current_t curr,
-    //                           Sign::Sign_t sign,
-    //                           CoeffsType type) const;
 
     std::unique_ptr<IPrediction> fPredNom; ///< The nominal prediction
 
