@@ -392,7 +392,7 @@ double Fitter::DoEval(const double *pars) const {
   ++fNEval;
 
   // PAR 2019-09-25 Exit early because I'm impatient
-  if(fNEval>30000) exit(0);
+  if(fNEval>50000) exit(0);
 
   DecodePars(pars); // Updates fCalc and fShifts
 
