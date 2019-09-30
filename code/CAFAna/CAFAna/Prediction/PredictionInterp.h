@@ -392,8 +392,8 @@ namespace ana
       };
     }
 #else
-    alignas(64) double corr[N];
-    alignas(64) double corrAVX2[N];
+    alignas(64) double corr[N+4];
+    alignas(64) double corrAVX2[N+4];
     for (unsigned int i = 0; i < N; ++i) {
       corr[i] = 1;
       corrAVX2[i] = 1;
@@ -432,8 +432,8 @@ namespace ana
 
       int shiftBin = fShiftBins[p_it];
 
-      // const Coeffs *fits = nubar ? &sp.fitsNubarRemap[type][shiftBin].front()
-      //                            : &sp.fitsRemap[type][shiftBin].front();
+      const Coeffs *fits = nubar ? &sp.fitsNubarRemap[type][shiftBin].front()
+                                 : &sp.fitsRemap[type][shiftBin].front();
 
       const CoeffsAVX2 *fitsAVX2 = nubar ? &sp.fitsNubarRemapAVX2[type][shiftBin].front()
                                      : &sp.fitsRemapAVX2[type][shiftBin].front();
@@ -447,8 +447,15 @@ namespace ana
       ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube,
                           corr[omp_get_thread_num()]);
 #else
-      // ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube, corr);
-      ShiftSpectrumKernelAVX2(fitsAVX2, N/4, x, x_sqr, x_cube, corrAVX2);
+      ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube, corr);
+      ShiftSpectrumKernelAVX2FMA(fitsAVX2, N/4+1, x, x_sqr, x_cube, corrAVX2);
+
+      for(unsigned int i=0; i<N; ++i){
+        if(fabs(corr[i]-corrAVX2[i]>1e-5)){
+          printf("ncall %d, i %d of %d, corr %.3f corrAVX %.3f\n", ncall, i, N, corr[i], corrAVX2[i]);
+          if(ncall>5) exit(1);
+        }
+      }
       // if(ncall<3){
       //   std::cout << "Syst " << p_it << std::endl;
       //   std::cout << "corr: ";
