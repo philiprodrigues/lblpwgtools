@@ -421,6 +421,8 @@ namespace ana
       xs[p_it]=x;
     } // end for syst
 
+    const size_t PREFETCH_DISTANCE=1;
+
     for (size_t p_it = 0; p_it < NPreds; ++p_it) {
       // const double x=xs[p_it];
       // const double x_cube = util::cube(x);
@@ -441,6 +443,7 @@ namespace ana
         // out += f.d
         // out *= corr[n]
         // store corr
+        __builtin_prefetch(fitss[p_it+PREFETCH_DISTANCE]+n);
         const CoeffsAVX2& f = fitss[p_it][n];
         __m256d out=_mm256_mul_pd(f.a, x3);
 
