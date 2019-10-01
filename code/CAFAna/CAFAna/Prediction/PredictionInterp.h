@@ -430,6 +430,10 @@ namespace ana
     const size_t PREFETCH_DISTANCE=4;
     const unsigned int Nregister=N/4+1;
 
+    unsigned int prefetch_p=PREFETCH_DISTANCE/Nregister;
+    unsigned int prefetch_n=PREFETCH_DISTANCE%Nregister;
+    const CoeffsAVX2* prefetch_coeffs=fitss[prefetch_p];
+
     for (size_t p_it = 0; p_it < NPreds; ++p_it) {
       // const double x=xs[p_it];
       // const double x_cube = util::cube(x);
@@ -450,9 +454,14 @@ namespace ana
         // out += f.d
         // out *= corr[n]
         // store corr
-        const CoeffsAVX2* fnext=fitss[p_it+PREFETCH_DISTANCE];
-        _mm_prefetch(&fnext[n].a, _MM_HINT_T1);
-        _mm_prefetch(&fnext[n].c, _MM_HINT_T1);
+        if(++prefetch_n==Nregister){
+          prefetch_n=0;
+          ++prefetch_p;
+          prefetch_coeffs=fitss[prefetch_p];
+        }
+        
+        _mm_prefetch(&prefetch_coeffs[prefetch_n].a, _MM_HINT_T1);
+        _mm_prefetch(&prefetch_coeffs[prefetch_n].c, _MM_HINT_T1);
         const CoeffsAVX2& f = fitss[p_it][n];
         __m256d out=_mm256_mul_pd(f.a, x3);
 
