@@ -271,16 +271,8 @@ namespace ana
         const bool nubar = (fSplitBySign && sign == Sign::kAntiNu);
 
         if(curr & Current::kCC){
-          // if(flav & Flavors::kNuMuToNuE)   PrefetchCoeffs(kNueApp,   nubar, shift);
-
           if(flav & Flavors::kNuEToNuE)    ret += ShiftedComponent(calc, hash, shift, Flavors::kNuEToNuE,    Current::kCC, sign, kNueSurv);
-
-          // if(flav & Flavors::kNuMuToNuMu)  PrefetchCoeffs(kNumuSurv, nubar, shift);
-
           if(flav & Flavors::kNuEToNuMu)   ret += ShiftedComponent(calc, hash, shift, Flavors::kNuEToNuMu,   Current::kCC, sign, kOther  );
-
-          // if(flav & Flavors::kNuMuToNuTau) PrefetchCoeffs(kOther,    nubar, shift);
-
           if(flav & Flavors::kNuEToNuTau)  ret += ShiftedComponent(calc, hash, shift, Flavors::kNuEToNuTau,  Current::kCC, sign, kOther  );
 
           if(flav & Flavors::kNuMuToNuE)   ret += ShiftedComponent(calc, hash, shift, Flavors::kNuMuToNuE,   Current::kCC, sign, kNueApp  );
@@ -344,27 +336,6 @@ namespace ana
 
     return ShiftSpectrum(nom, type, nubar, shift);
   }
-
-    // inline void PrefetchCoeffs(CoeffsType type,
-    //                            bool nubar,
-    //                            const SystShifts &shift) const
-    //   {
-    //     if(fShiftBins.empty()) return;
-
-    //     const size_t NPreds = fPreds.size();
-
-    //     for (size_t p_it = 0; p_it < NPreds; ++p_it) {
-    //       // const ISyst *syst = fPreds[p_it].first;
-    //       const ShiftedPreds &sp = fPreds[p_it].second;
-
-    //       int shiftBin = fShiftBins[p_it];
-
-    //       const Coeffs *fits = nubar ? &sp.fitsNubarRemap[type][shiftBin].front()
-    //         : &sp.fitsRemap[type][shiftBin].front();
-    //       for(unsigned int n=0; n<fNBins; ++n) __builtin_prefetch(fits+n);
-    //     } // end for syst
-
-    //   }
 
   //----------------------------------------------------------------------
   virtual inline Spectrum ShiftSpectrum(const Spectrum &s, CoeffsType type,
