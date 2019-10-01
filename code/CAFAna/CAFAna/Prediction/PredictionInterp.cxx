@@ -190,21 +190,21 @@ namespace ana
       ratios.emplace_back(Ratio(p->PredictComponent(fOscOrigin,
                                                     flav, curr, sign),
                                 nom).ToTH1());
-
+      
       // Check none of the ratio values is crazy
       std::unique_ptr<TH1>& r = ratios.back();
       for(int i = 0; i < r->GetNbinsX()+2; ++i){
-	const double y = r->GetBinContent(i);
-	if(y > 2){
-	  // std::cout << "PredictionInterp: WARNING, ratio in bin "
-	  // 	    << i << " for " << shifts[&p-&preds.front()]
+        const double y = r->GetBinContent(i);
+        if(y > 2){
+          // std::cout << "PredictionInterp: WARNING, ratio in bin "
+          // 	    << i << " for " << shifts[&p-&preds.front()]
           //           << " sigma shift of " << systName << " is " << y
           //           << " which exceeds limit of 2. Capping." << std::endl;
-	  r->SetBinContent(i, 2);
-	}
+          r->SetBinContent(i, 2);
+        }
       }
     }
-
+    
     return FitRatios(shifts, ratios);
   }
 
