@@ -422,6 +422,7 @@ namespace ana
     } // end for syst
 
     const size_t PREFETCH_DISTANCE=1;
+    const unsigned int Nregister=N/4+1;
 
     for (size_t p_it = 0; p_it < NPreds; ++p_it) {
       // const double x=xs[p_it];
@@ -436,14 +437,16 @@ namespace ana
       __m256d x=_mm256_set1_pd(xs[p_it]);
       __m256d x2=_mm256_mul_pd(x,x);
       __m256d x3=_mm256_mul_pd(x2,x);
-      for(unsigned int n = 0; n < N/4+1; ++n){
+      for(unsigned int n = 0; n < Nregister; ++n){
         // out  = f.a*x3
         // out += f.b*x2
         // out += f.c*x
         // out += f.d
         // out *= corr[n]
         // store corr
-        _mm_prefetch(fitss[p_it+PREFETCH_DISTANCE]+n, _MM_HINT_T1);
+        const CoeffsAVX2* fnext=fitss[p_it+PREFETCH_DISTANCE];
+        _mm_prefetch(&fnext[n].a, _MM_HINT_T1);
+        _mm_prefetch(&fnext[n].c, _MM_HINT_T1);
         const CoeffsAVX2& f = fitss[p_it][n];
         __m256d out=_mm256_mul_pd(f.a, x3);
 
