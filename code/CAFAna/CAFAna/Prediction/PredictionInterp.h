@@ -460,8 +460,8 @@ namespace ana
           prefetch_coeffs=fitss[prefetch_p];
         }
         
-        _mm_prefetch(&prefetch_coeffs[prefetch_n].a, _MM_HINT_T1);
-        _mm_prefetch(&prefetch_coeffs[prefetch_n].c, _MM_HINT_T1);
+        // _mm_prefetch(&prefetch_coeffs[prefetch_n].a, _MM_HINT_T1);
+        // _mm_prefetch(&prefetch_coeffs[prefetch_n].c, _MM_HINT_T1);
         const CoeffsAVX2& f = fitss[p_it][n];
         __m256d out=_mm256_mul_pd(f.a, x3);
 
