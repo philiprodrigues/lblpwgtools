@@ -421,7 +421,7 @@ namespace ana
       xs[p_it]=x;
     } // end for syst
 
-    const size_t PREFETCH_DISTANCE=2;
+    const size_t PREFETCH_DISTANCE=1;
 
     for (size_t p_it = 0; p_it < NPreds; ++p_it) {
       // const double x=xs[p_it];
