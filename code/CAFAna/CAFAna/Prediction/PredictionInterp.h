@@ -443,7 +443,7 @@ namespace ana
         // out += f.d
         // out *= corr[n]
         // store corr
-        __builtin_prefetch(fitss[p_it+PREFETCH_DISTANCE]+n);
+        _mm_prefetch(fitss[p_it+PREFETCH_DISTANCE]+n, _MM_HINT_T1);
         const CoeffsAVX2& f = fitss[p_it][n];
         __m256d out=_mm256_mul_pd(f.a, x3);
 
