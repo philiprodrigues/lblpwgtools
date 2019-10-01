@@ -388,6 +388,10 @@ namespace ana
       }
     }
 
+    std::vector<CoeffsAVX2> default_coeffs(N/4+1, CoeffsAVX2(_mm256_setzero_pd(),
+                                                             _mm256_setzero_pd(),
+                                                             _mm256_setzero_pd(),
+                                                             _mm256_set1_pd(1)));
     const CoeffsAVX2* fitss[NPreds];
     double xs[NPreds];
 
@@ -399,7 +403,8 @@ namespace ana
       double x = shift.GetShift(syst);
 
       if (x == 0){
-        fitss[p_it]=nullptr;
+        fitss[p_it]=&default_coeffs.front();
+        xs[p_it]=0;
         continue;
       }
 
@@ -417,38 +422,39 @@ namespace ana
     } // end for syst
 
     for (size_t p_it = 0; p_it < NPreds; ++p_it) {
-      if(fitss[p_it]){
-        const double x=xs[p_it];
-        const double x_cube = util::cube(x);
-        const double x_sqr = util::sqr(x);
-
+      // const double x=xs[p_it];
+      // const double x_cube = util::cube(x);
+      // const double x_sqr = util::sqr(x);
+      
 #ifdef USE_PREDINTERP_OMP
-        ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube,
-                            corr[omp_get_thread_num()]);
+      ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube,
+                          corr[omp_get_thread_num()]);
 #else
-        // ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube, corr);
-        ShiftSpectrumKernelAVX2(fitss[p_it], N/4+1, x, x_sqr, x_cube, corrAVX2);
-      }
-      // for(unsigned int i=0; i<N; ++i){
-      //   if(fabs(corr[i]-corrAVX2[i]>1e-5)){
-      //     printf("ncall %d, i %d of %d, corr %.3f corrAVX %.3f\n", ncall, i, N, corr[i], corrAVX2[i]);
-      //     if(ncall>5) exit(1);
-      //   }
-      // }
+      // broadcast x3, x2, x into __m256d registers
+      __m256d x=_mm256_set1_pd(xs[p_it]);
+      __m256d x2=_mm256_mul_pd(x,x);
+      __m256d x3=_mm256_mul_pd(x2,x);
+      for(unsigned int n = 0; n < N; ++n){
+        // out  = f.a*x3
+        // out += f.b*x2
+        // out += f.c*x
+        // out += f.d
+        // out *= corr[n]
+        // store corr
+        const CoeffsAVX2& f = fitss[p_it][n];
+        __m256d out=_mm256_mul_pd(f.a, x3);
 
-      // if(ncall<3){
-      //   std::cout << "Syst " << p_it << std::endl;
-      //   std::cout << "corr: ";
-      //   for(unsigned int i=0; i<std::min(10u, N); ++i){
-      //     printf("%.3f\t", corr[i]);
-      //   }
-      //   std::cout << std::endl;
-      //   std::cout << "AVX2: ";
-      //   for(unsigned int i=0; i<std::min(10u, N); ++i){
-      //     printf("%.3f\t", corrAVX2[i]);
-      //   }
-      //   std::cout << std::endl;
-      // }
+        out=_mm256_add_pd(out, _mm256_mul_pd(f.b, x2));
+        out=_mm256_add_pd(out, _mm256_mul_pd(f.c, x));
+        out=_mm256_add_pd(out, f.d);
+
+        out=_mm256_mul_pd(out, _mm256_loadu_pd(corrAVX2+4*n));
+        _mm256_storeu_pd(corrAVX2+4*n, out);
+        // corr[n] *= f.a*x3 + f.b*x2 + f.c*x + f.d;
+      } // end for n
+
+      // ShiftSpectrumKernelAVX2(fitss[p_it], N/4+1, x, x_sqr, x_cube, corrAVX2);
+      
 #endif
     } // end for syst
 
