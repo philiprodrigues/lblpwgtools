@@ -13,7 +13,7 @@ namespace ana
       double a, b, c, d;
     };
 
-    struct CoeffsAVX2{
+    struct alignas(64) CoeffsAVX2{
       CoeffsAVX2(__m256d _a, __m256d _b, __m256d _c, __m256d _d)
         : a(_a), b(_b), c(_c), d(_d) {}
       __m256d a, b, c, d;
