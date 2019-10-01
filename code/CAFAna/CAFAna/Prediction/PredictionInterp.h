@@ -387,7 +387,10 @@ namespace ana
         fShiftBins[p_it]=shiftBin;
       }
     }
-    
+
+    CoeffsAVX2* fitss[NPreds];
+    double xs[NPreds];
+
     #pragma omp parallel for
     for (size_t p_it = 0; p_it < NPreds; ++p_it) {
       const ISyst *syst = fPreds[p_it].first;
@@ -395,8 +398,10 @@ namespace ana
 
       double x = shift.GetShift(syst);
 
-      if (x == 0)
+      if (x == 0){
+        fitss[p_it]=nullptr;
         continue;
+      }
 
       int shiftBin = fShiftBins[p_it];
 
@@ -405,19 +410,25 @@ namespace ana
 
       const CoeffsAVX2 *fitsAVX2 = nubar ? &sp.fitsNubarRemapAVX2[type][shiftBin].front()
                                      : &sp.fitsRemapAVX2[type][shiftBin].front();
-
+      fitss[p_it]=fitsAVX2;
       x -= sp.shifts[shiftBin];
 
-      const double x_cube = util::cube(x);
-      const double x_sqr = util::sqr(x);
+      xs[p_it]=x;
+    } // end for syst
+
+    for (size_t p_it = 0; p_it < NPreds; ++p_it) {
+      if(fitss[p_it]){
+        const double x=xs[p_it];
+        const double x_cube = util::cube(x);
+        const double x_sqr = util::sqr(x);
 
 #ifdef USE_PREDINTERP_OMP
-      ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube,
-                          corr[omp_get_thread_num()]);
+        ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube,
+                            corr[omp_get_thread_num()]);
 #else
-      // ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube, corr);
-      ShiftSpectrumKernelAVX2(fitsAVX2, N/4+1, x, x_sqr, x_cube, corrAVX2);
-
+        // ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube, corr);
+        ShiftSpectrumKernelAVX2(fitss[p_it], N/4+1, x, x_sqr, x_cube, corrAVX2);
+      }
       // for(unsigned int i=0; i<N; ++i){
       //   if(fabs(corr[i]-corrAVX2[i]>1e-5)){
       //     printf("ncall %d, i %d of %d, corr %.3f corrAVX %.3f\n", ncall, i, N, corr[i], corrAVX2[i]);
