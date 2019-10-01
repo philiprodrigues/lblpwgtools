@@ -263,47 +263,41 @@ namespace ana
         }
       }
 
-      // sp.fitsRemapAVX2.resize(sp.fits.size());
-      // for(auto& it: sp.fitsRemapAVX2){
-      //   it.resize(sp.fits[0][0].size());
-      //   for(auto& it2: it) it2.resize(sp.fits[0].size()/4+1, CoeffsAVX2(_mm256_setzero_pd(),
-      //                                                                   _mm256_setzero_pd(),
-      //                                                                   _mm256_setzero_pd(),
-      //                                                                   _mm256_setzero_pd()));
-      // }
-
-
-      sp.fitsRemapAVX2.allocate(sp.fits.size(),
-                                sp.fits[0][0].size(),
-                                sp.fits[0].size()/4+1);
+      // Only try to allocate an output if the input vector has any entries
+      if(sp.fits.size() && sp.fits[0].size() && sp.fits[0][0].size()){
+        sp.fitsRemapAVX2.allocate(sp.fits.size(),
+                                  sp.fits[0][0].size(),
+                                  sp.fits[0].size()/4+1);
       
-      for(unsigned int i = 0; i < sp.fitsRemapAVX2.Ni; ++i){
-        for(unsigned int j = 0; j < sp.fitsRemapAVX2.Nj; ++j){
-          for(unsigned int k = 0; k < sp.fitsRemapAVX2.Nk; ++k){
-#define GETCOEFF(offset, coeff) sp.fits[i].size()>(4*k+(offset)) ? sp.fits[i][4*k+(offset)][j].coeff : 0
-            sp.fitsRemapAVX2.at(i,j,k)->a = _mm256_setr_pd(GETCOEFF(0, a),
-                                                        GETCOEFF(1, a),
-                                                        GETCOEFF(2, a),
-                                                        GETCOEFF(3, a));
+        for(unsigned int i = 0; i < sp.fitsRemapAVX2.Ni; ++i){
+          for(unsigned int j = 0; j < sp.fitsRemapAVX2.Nj; ++j){
+            for(unsigned int k = 0; k < sp.fitsRemapAVX2.Nk; ++k){
+#define GETCOEFF(offset, coeff) sp.fits.at(i).size()>(4*k+(offset)) ? sp.fits.at(i).at(4*k+(offset)).at(j).coeff : 0
+              CoeffsAVX2* coeffs=sp.fitsRemapAVX2.at(i,j,k);
+              coeffs->a = _mm256_setr_pd(GETCOEFF(0, a),
+                                         GETCOEFF(1, a),
+                                         GETCOEFF(2, a),
+                                         GETCOEFF(3, a));
+            
+              coeffs->b = _mm256_setr_pd(GETCOEFF(0, b),
+                                         GETCOEFF(1, b),
+                                         GETCOEFF(2, b),
+                                         GETCOEFF(3, b));
+            
+              coeffs->c = _mm256_setr_pd(GETCOEFF(0, c),
+                                         GETCOEFF(1, c),
+                                         GETCOEFF(2, c),
+                                         GETCOEFF(3, c));
+            
+              coeffs->d = _mm256_setr_pd(GETCOEFF(0, d),
+                                         GETCOEFF(1, d),
+                                         GETCOEFF(2, d),
+                                         GETCOEFF(3, d));
 
-            sp.fitsRemapAVX2.at(i,j,k)->b = _mm256_setr_pd(GETCOEFF(0, b),
-                                                        GETCOEFF(1, b),
-                                                        GETCOEFF(2, b),
-                                                        GETCOEFF(3, b));
-
-            sp.fitsRemapAVX2.at(i,j,k)->c = _mm256_setr_pd(GETCOEFF(0, c),
-                                                        GETCOEFF(1, c),
-                                                        GETCOEFF(2, c),
-                                                        GETCOEFF(3, c));
-
-            sp.fitsRemapAVX2.at(i,j,k)->d = _mm256_setr_pd(GETCOEFF(0, d),
-                                                        GETCOEFF(1, d),
-                                                        GETCOEFF(2, d),
-                                                        GETCOEFF(3, d));
-
-          }
-        }
-      }
+            } // end for k
+          } // end for j
+        } // end for i
+      } // end if(vector has any entries)
 
       sp.fitsNubarRemap.resize(sp.fitsNubar.size());
       for(auto& it: sp.fitsNubarRemap){
@@ -319,48 +313,41 @@ namespace ana
         }
       }
 
-      
-      sp.fitsNubarRemapAVX2.allocate(sp.fitsNubar.size(),
-                                     sp.fitsNubar[0][0].size(),
-                                     sp.fitsNubar[0].size()/4+1);
+      // Only try to allocate an output if the input vector has any entries
+      if(sp.fitsNubar.size() && sp.fitsNubar[0].size() && sp.fitsNubar[0][0].size()){
+        sp.fitsNubarRemapAVX2.allocate(sp.fitsNubar.size(),
+                                       sp.fitsNubar[0][0].size(),
+                                       sp.fitsNubar[0].size()/4+1);
 
-      // sp.fitsNubarRemapAVX2.resize(sp.fitsNubar.size());
-      // for(auto& it: sp.fitsNubarRemapAVX2){
-      //   it.resize(sp.fitsNubar[0][0].size());
-      //   for(auto& it2: it) it2.resize(sp.fitsNubar[0].size()/4+1, CoeffsAVX2(_mm256_setzero_pd(),
-      //                                                                        _mm256_setzero_pd(),
-      //                                                                        _mm256_setzero_pd(),
-      //                                                                        _mm256_setzero_pd()));
-      // }
-
-      for(unsigned int i = 0; i < sp.fitsNubarRemapAVX2.Ni; ++i){
-        for(unsigned int j = 0; j < sp.fitsNubarRemapAVX2.Nj; ++j){
-          for(unsigned int k = 0; k < sp.fitsNubarRemapAVX2.Nk; ++k){
+        for(unsigned int i = 0; i < sp.fitsNubarRemapAVX2.Ni; ++i){
+          for(unsigned int j = 0; j < sp.fitsNubarRemapAVX2.Nj; ++j){
+            for(unsigned int k = 0; k < sp.fitsNubarRemapAVX2.Nk; ++k){
 #define GETCOEFF2(offset, coeff) sp.fitsNubar[i].size()>(4*k+(offset)) ? sp.fitsNubar[i][4*k+(offset)][j].coeff : 0
-            sp.fitsNubarRemapAVX2.at(i,j,k)->a = _mm256_setr_pd(GETCOEFF2(0, a),
-                                                             GETCOEFF2(1, a),
-                                                             GETCOEFF2(2, a),
-                                                             GETCOEFF2(3, a));
+              CoeffsAVX2* coeffs=sp.fitsNubarRemapAVX2.at(i,j,k);
+              coeffs->a = _mm256_setr_pd(GETCOEFF2(0, a),
+                                         GETCOEFF2(1, a),
+                                         GETCOEFF2(2, a),
+                                         GETCOEFF2(3, a));
             
-            sp.fitsNubarRemapAVX2.at(i,j,k)->b = _mm256_setr_pd(GETCOEFF2(0, b),
-                                                             GETCOEFF2(1, b),
-                                                             GETCOEFF2(2, b),
-                                                             GETCOEFF2(3, b));
+              coeffs->b = _mm256_setr_pd(GETCOEFF2(0, b),
+                                         GETCOEFF2(1, b),
+                                         GETCOEFF2(2, b),
+                                         GETCOEFF2(3, b));
             
-            sp.fitsNubarRemapAVX2.at(i,j,k)->c = _mm256_setr_pd(GETCOEFF2(0, c),
-                                                             GETCOEFF2(1, c),
-                                                             GETCOEFF2(2, c),
-                                                             GETCOEFF2(3, c));
+              coeffs->c = _mm256_setr_pd(GETCOEFF2(0, c),
+                                         GETCOEFF2(1, c),
+                                         GETCOEFF2(2, c),
+                                         GETCOEFF2(3, c));
 
-            sp.fitsNubarRemapAVX2.at(i,j,k)->d = _mm256_setr_pd(GETCOEFF2(0, d),
-                                                             GETCOEFF2(1, d),
-                                                             GETCOEFF2(2, d),
-                                                             GETCOEFF2(3, d));
-
-          }
-        }
-      }
-
+              coeffs->d = _mm256_setr_pd(GETCOEFF2(0, d),
+                                         GETCOEFF2(1, d),
+                                         GETCOEFF2(2, d),
+                                         GETCOEFF2(3, d));
+            
+            } // end for k
+          } // end for j
+        } // end for i
+      } // end if(vector has any entries)
 
     } // end for(preds)
 
