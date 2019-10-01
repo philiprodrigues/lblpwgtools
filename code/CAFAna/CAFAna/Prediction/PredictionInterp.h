@@ -177,8 +177,35 @@ namespace ana
 
       // Same info as above but with CoeffsAVX2. Index order
       // [type][shift bin][histogram bin]. TODO this is even uglier
-      std::vector<std::vector<std::vector<CoeffsAVX2>>> fitsRemapAVX2;
-      std::vector<std::vector<std::vector<CoeffsAVX2>>> fitsNubarRemapAVX2;
+      // std::vector<std::vector<std::vector<CoeffsAVX2>>> fitsRemapAVX2;
+      // std::vector<std::vector<std::vector<CoeffsAVX2>>> fitsNubarRemapAVX2;
+
+      struct CoeffsArray3D {
+        CoeffsArray3D()
+          : coeffs(nullptr)
+          {}
+
+        void allocate(size_t ni, size_t nj, size_t nk)
+        {
+          if(coeffs) _mm_free(coeffs);
+          Ni=ni; Nj=nj; Nk=nk;
+          N=ni*nj*nk;
+          coeffs=(CoeffsAVX2*)_mm_malloc(N*sizeof(CoeffsAVX2), 64);
+        }
+
+        ~CoeffsArray3D() { if(coeffs) _mm_free(coeffs); }
+
+        CoeffsAVX2* at(size_t i, size_t j, size_t k) const
+        {
+          return coeffs + Nk*Nj*i + Nk*j + k;
+        }
+
+        CoeffsAVX2* coeffs;
+        size_t Ni, Nj, Nk, N;
+      };
+
+      CoeffsArray3D fitsRemapAVX2;
+      CoeffsArray3D fitsNubarRemapAVX2;
 
       ShiftedPreds() {}
       ShiftedPreds(ShiftedPreds &&other)
@@ -314,26 +341,26 @@ namespace ana
     return ShiftSpectrum(nom, type, nubar, shift);
   }
 
-    inline void PrefetchCoeffs(CoeffsType type,
-                               bool nubar,
-                               const SystShifts &shift) const
-      {
-        if(fShiftBins.empty()) return;
+    // inline void PrefetchCoeffs(CoeffsType type,
+    //                            bool nubar,
+    //                            const SystShifts &shift) const
+    //   {
+    //     if(fShiftBins.empty()) return;
 
-        const size_t NPreds = fPreds.size();
+    //     const size_t NPreds = fPreds.size();
 
-        for (size_t p_it = 0; p_it < NPreds; ++p_it) {
-          // const ISyst *syst = fPreds[p_it].first;
-          const ShiftedPreds &sp = fPreds[p_it].second;
+    //     for (size_t p_it = 0; p_it < NPreds; ++p_it) {
+    //       // const ISyst *syst = fPreds[p_it].first;
+    //       const ShiftedPreds &sp = fPreds[p_it].second;
 
-          int shiftBin = fShiftBins[p_it];
+    //       int shiftBin = fShiftBins[p_it];
 
-          const Coeffs *fits = nubar ? &sp.fitsNubarRemap[type][shiftBin].front()
-            : &sp.fitsRemap[type][shiftBin].front();
-          for(unsigned int n=0; n<fNBins; ++n) __builtin_prefetch(fits+n);
-        } // end for syst
+    //       const Coeffs *fits = nubar ? &sp.fitsNubarRemap[type][shiftBin].front()
+    //         : &sp.fitsRemap[type][shiftBin].front();
+    //       for(unsigned int n=0; n<fNBins; ++n) __builtin_prefetch(fits+n);
+    //     } // end for syst
 
-      }
+    //   }
 
   //----------------------------------------------------------------------
   virtual inline Spectrum ShiftSpectrum(const Spectrum &s, CoeffsType type,
@@ -410,11 +437,15 @@ namespace ana
 
       int shiftBin = fShiftBins[p_it];
 
-      const Coeffs *fits = nubar ? &sp.fitsNubarRemap[type][shiftBin].front()
-                                 : &sp.fitsRemap[type][shiftBin].front();
+      // const Coeffs *fits = nubar ? &sp.fitsNubarRemap[type][shiftBin].front()
+      //                            : &sp.fitsRemap[type][shiftBin].front();
 
-      const CoeffsAVX2 *fitsAVX2 = nubar ? &sp.fitsNubarRemapAVX2[type][shiftBin].front()
-                                     : &sp.fitsRemapAVX2[type][shiftBin].front();
+      // const CoeffsAVX2 *fitsAVX2 = nubar ? &sp.fitsNubarRemapAVX2[type][shiftBin].front()
+      //                                : &sp.fitsRemapAVX2[type][shiftBin].front();
+
+      const CoeffsAVX2 *fitsAVX2 = nubar ? sp.fitsNubarRemapAVX2.at(type, shiftBin, 0)
+                                         : sp.fitsRemapAVX2.at(type, shiftBin, 0);
+
       fitss[p_it]=fitsAVX2;
       x -= sp.shifts[shiftBin];
 
