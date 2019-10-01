@@ -434,7 +434,7 @@ namespace ana
       __m256d x=_mm256_set1_pd(xs[p_it]);
       __m256d x2=_mm256_mul_pd(x,x);
       __m256d x3=_mm256_mul_pd(x2,x);
-      for(unsigned int n = 0; n < N; ++n){
+      for(unsigned int n = 0; n < N/4+1; ++n){
         // out  = f.a*x3
         // out += f.b*x2
         // out += f.c*x
