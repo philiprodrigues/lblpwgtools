@@ -195,8 +195,12 @@ namespace ana
 
         ~CoeffsArray3D() { if(coeffs) _mm_free(coeffs); }
 
-        CoeffsAVX2* at(size_t i, size_t j, size_t k) const
+       inline  CoeffsAVX2* at(size_t i, size_t j, size_t k) const
         {
+          // if(i>=Ni) std::cout << "i=" << i << " out of bounds" << std::endl;
+          // if(j>=Nj) std::cout << "j=" << j << " out of bounds" << std::endl;
+          // if(k>=Nk) std::cout << "k=" << k << " out of bounds" << std::endl;
+          // if(Nk*Nj*i + Nk*j + k >= N) std::cout << "index too large" << std::endl;
           return coeffs + Nk*Nj*i + Nk*j + k;
         }
 
