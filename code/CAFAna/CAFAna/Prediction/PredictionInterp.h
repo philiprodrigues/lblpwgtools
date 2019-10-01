@@ -388,7 +388,7 @@ namespace ana
       }
     }
 
-    CoeffsAVX2* fitss[NPreds];
+    const CoeffsAVX2* fitss[NPreds];
     double xs[NPreds];
 
     #pragma omp parallel for
