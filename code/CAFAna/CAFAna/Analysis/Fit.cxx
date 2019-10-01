@@ -391,9 +391,6 @@ void Fitter::DecodePars(const double *pars) const {
 double Fitter::DoEval(const double *pars) const {
   ++fNEval;
 
-  // PAR 2019-09-25 Exit early because I'm impatient
-  if(fNEval>50000) exit(0);
-
   DecodePars(pars); // Updates fCalc and fShifts
 
   // Have to re-fetch the values because DecodePars() will have truncated
@@ -416,9 +413,9 @@ double Fitter::DoEval(const double *pars) const {
     std::cerr << "[FIT]: NEval: " << fNEval
               << ", LH: {samp: " << fExpt->ChiSq(fCalc, fShifts)
               << ", pen: " << penalty << "}\n\tT += "
-              << std::chrono::duration_cast<std::chrono::seconds>(now - fLastTP)
+              << std::chrono::duration_cast<std::chrono::milliseconds>(now - fLastTP)
                      .count()
-              << " s, = ";
+              << " ms, = ";
 
     if (std::chrono::duration_cast<std::chrono::seconds>(now - fBeginTP)
             .count() > 60) {
