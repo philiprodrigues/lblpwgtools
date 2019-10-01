@@ -421,7 +421,7 @@ namespace ana
       xs[p_it]=x;
     } // end for syst
 
-    const size_t PREFETCH_DISTANCE=1;
+    const size_t PREFETCH_DISTANCE=3;
     const unsigned int Nregister=N/4+1;
 
     for (size_t p_it = 0; p_it < NPreds; ++p_it) {
