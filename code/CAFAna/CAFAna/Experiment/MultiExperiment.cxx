@@ -169,7 +169,13 @@ namespace ana
       // absolute by multiplying out the prediction
       for( int b0 = 0; b0 < n_bins; ++b0 ) {
         for( int b1 = 0; b1 < n_bins; ++b1 ) {
-          const double f = pred[b0] * pred[b1];
+          // This was originally
+          //
+          // const double f = pred[b0] * pred[b1];
+          //
+          // but TVectorD::operator[] showed up in the profile.
+          const double f = pred.GetMatrixArray()[b0] * pred.GetMatrixArray()[b1];
+
           // This was originally
           //
           // if(f != 0) covInv(b0, b1) /= f;
