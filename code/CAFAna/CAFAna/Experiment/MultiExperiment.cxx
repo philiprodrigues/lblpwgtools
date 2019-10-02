@@ -170,8 +170,16 @@ namespace ana
       for( int b0 = 0; b0 < n_bins; ++b0 ) {
         for( int b1 = 0; b1 < n_bins; ++b1 ) {
           const double f = pred[b0] * pred[b1];
-          if(f != 0) covInv(b0, b1) /= f;
-          else covInv(b0, b1) = 0.;
+          // This was originally
+          //
+          // if(f != 0) covInv(b0, b1) /= f;
+          //            else covInv(b0, b1) = 0.;
+          //
+          // but TMatrixD::operator() showed up in the profile (it has
+          // bounds-checking), so try accessing the matrix elements
+          // directly, since we know we aren't going out-of-bounds:
+          if(f != 0) covInv.GetMatrixArray()[b0*n_bins+ b1] /= f;
+          else covInv.GetMatrixArray()[b0*n_bins+ b1] = 0.;
         }
       }
 
