@@ -374,12 +374,14 @@ namespace ana
 
     if(fShiftBins.empty()){
       fShiftBins.resize(NPreds);
+      fShiftValues.clear();
+      fShiftValues.resize(NPreds);
       for (size_t p_it = 0; p_it < NPreds; ++p_it) {
         const ISyst *syst = fPreds[p_it].first;
         const ShiftedPreds &sp = fPreds[p_it].second;
         
         double x = shift.GetShift(syst);
-        
+        fShiftValues[p_it]=x;
         if (x == 0)
           continue;
         
@@ -402,8 +404,12 @@ namespace ana
       const ISyst *syst = fPreds[p_it].first;
       const ShiftedPreds &sp = fPreds[p_it].second;
 
-      double x = shift.GetShift(syst);
-
+      // double x = shift.GetShift(syst);
+      double x = fShiftValues[p_it];
+      // if(fabs(x-x2)>1e-6){
+      //   std::cerr << "Wrong shift!" << std::endl;
+      //   exit(1);
+      // }
       if (x == 0){
         fitss[p_it]=&default_coeffs.front();
         xs[p_it]=0;
@@ -548,7 +554,7 @@ namespace ana
 
     mutable std::vector<int> fShiftBins;
     mutable unsigned int fNBins{0};
-
+    mutable std::vector<double> fShiftValues;
     void InitFits() const;
 
     void InitFitsHelper(ShiftedPreds& sp,
