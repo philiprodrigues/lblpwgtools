@@ -263,8 +263,14 @@ namespace ana
         }
       }
 
+      // Allocate and fill the CoeffsArray3D that holds the AVX2 coefficients in a contiguous memory block
+
       // Only try to allocate an output if the input vector has any entries
       if(sp.fits.size() && sp.fits[0].size() && sp.fits[0][0].size()){
+        // Indices are [type][shiftBin][histogram bin]. For the last
+        // index, we're storing the N coefficients in registers that
+        // hold four doubles, so we need N/4+1 registers, where the
+        // last register will have some dummy entries.
         sp.fitsRemapAVX2.allocate(sp.fits.size(),
                                   sp.fits[0][0].size(),
                                   sp.fits[0].size()/4+1);
@@ -272,8 +278,10 @@ namespace ana
         for(unsigned int i = 0; i < sp.fitsRemapAVX2.Ni; ++i){
           for(unsigned int j = 0; j < sp.fitsRemapAVX2.Nj; ++j){
             for(unsigned int k = 0; k < sp.fitsRemapAVX2.Nk; ++k){
+              // Nasty helper macro to get the input coefficient, or zero if we're in one of the dummy items in the last register
 #define GETCOEFF(offset, coeff) sp.fits.at(i).size()>(4*k+(offset)) ? sp.fits.at(i).at(4*k+(offset)).at(j).coeff : 0
               CoeffsAVX2* coeffs=sp.fitsRemapAVX2.at(i,j,k);
+              // _mm256_setr_pd sets the four doubles in a 256-bit register in individually
               coeffs->a = _mm256_setr_pd(GETCOEFF(0, a),
                                          GETCOEFF(1, a),
                                          GETCOEFF(2, a),
