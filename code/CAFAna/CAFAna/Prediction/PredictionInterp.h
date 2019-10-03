@@ -180,6 +180,11 @@ namespace ana
       // std::vector<std::vector<std::vector<CoeffsAVX2>>> fitsRemapAVX2;
       // std::vector<std::vector<std::vector<CoeffsAVX2>>> fitsNubarRemapAVX2;
 
+      // A small wrapper to store the interpolation coefficients in a
+      // contiguous block of memory (which nested std::vectors don't,
+      // I think). This only works because we know the size of the
+      // array before we create it, and it's rectangular and not
+      // ragged
       struct CoeffsArray3D {
         CoeffsArray3D()
           : coeffs(nullptr)
@@ -190,12 +195,15 @@ namespace ana
           if(coeffs) _mm_free(coeffs);
           Ni=ni; Nj=nj; Nk=nk;
           N=ni*nj*nk;
+          // _mm_malloc from the intel intrinsics gives us aligned
+          // memory. Here we align to a 64-byte cache line, which hopefully
+          // improves speed downstream
           coeffs=(CoeffsAVX2*)_mm_malloc(N*sizeof(CoeffsAVX2), 64);
         }
 
         ~CoeffsArray3D() { if(coeffs) _mm_free(coeffs); }
 
-       inline  CoeffsAVX2* at(size_t i, size_t j, size_t k) const
+        inline  CoeffsAVX2* at(size_t i, size_t j, size_t k) const
         {
           // if(i>=Ni) std::cout << "i=" << i << " out of bounds" << std::endl;
           // if(j>=Nj) std::cout << "j=" << j << " out of bounds" << std::endl;
@@ -252,7 +260,11 @@ namespace ana
         InitFits();
         Spectrum& ret = fBinning;
         ret.Clear();
+        // Clear the caches of shift values and shift bins, so they
+        // get re-found for this systematic shift point (inside
+        // ShiftSpectrum)
         fShiftBins.clear();
+        fShiftValues.clear();
 
         if(ret.POT()==0) ret.OverridePOT(1e24);
 
@@ -338,6 +350,11 @@ namespace ana
   }
 
   //----------------------------------------------------------------------
+  //
+  // HERE BE DRAGONS
+  // ShiftSpectrum is the largest function in profiles
+  // of jobs with lots of systematics, so we play a bunch of tricks to
+  // try to speed it up
   virtual inline Spectrum ShiftSpectrum(const Spectrum &s, CoeffsType type,
                                           bool nubar,
                                           const SystShifts &shift) const __attribute__((always_inline)) {
@@ -352,7 +369,6 @@ namespace ana
     TH1D *h = s.ToTH1(s.POT());
 
     const unsigned int N = h->GetNbinsX() + 2;
-    fNBins=N;
 
 #ifdef USE_PREDINTERP_OMP
     double corr[4][N];
@@ -362,16 +378,25 @@ namespace ana
       };
     }
 #else
+    // We allocate the output array with a little extra on the end
+    // because we're storing the interpolation coefficients in
+    // registers containing four doubles, so we might have up to four
+    // dummy items on the end. The dummy items get ignored when we
+    // copy the result to the output array.
+    //
+    // The alignas was an attempt to align the array on a cache line,
+    // which probably doesn't make any difference, but probably
+    // doesn't hurt either
     alignas(64) double corr[N+4];
-    alignas(64) double corrAVX2[N+4];
     for (unsigned int i = 0; i < N; ++i) {
       corr[i] = 1;
-      corrAVX2[i] = 1;
     }
 #endif
 
     size_t NPreds = fPreds.size();
 
+    // If the mapping from systematic to the shift bin (ie, which
+    // prediction to use) hasn't been cached, calculate it now
     if(fShiftBins.empty()){
       fShiftBins.resize(NPreds);
       fShiftValues.clear();
@@ -392,11 +417,25 @@ namespace ana
       }
     }
 
+    // We do two loops through the systematics below. In the first
+    // loop, we find the x values and interpolation coefficients for
+    // every systematic at this point, and in the second loop we
+    // actually use them to do the interpolation calculation. The
+    // original idea here was to be able to explicitly prefetch the
+    // coefficients a few steps ahead in the second loop, but I never
+    // managed to get that to actually help.
+
+    // Coefficients (0,0,0,1), constructed so that applying them in
+    // the interpolation formula with x=0 results in 1, which is the
+    // identity value for the output
     std::vector<CoeffsAVX2> default_coeffs(N/4+1, CoeffsAVX2(_mm_setzero_ps(),
                                                              _mm_setzero_ps(),
                                                              _mm_setzero_ps(),
                                                              _mm_set1_ps(1)));
+
+    // Pointers to the fit coefficients for each systematic
     const CoeffsAVX2* fitss[NPreds];
+    // The x values for each systematic to use in the interpolation
     double xs[NPreds];
 
     #pragma omp parallel for
@@ -404,12 +443,11 @@ namespace ana
       const ISyst *syst = fPreds[p_it].first;
       const ShiftedPreds &sp = fPreds[p_it].second;
 
-      // double x = shift.GetShift(syst);
-      double x = fShiftValues[p_it];
-      // if(fabs(x-x2)>1e-6){
-      //   std::cerr << "Wrong shift!" << std::endl;
-      //   exit(1);
-      // }
+      double x = fShiftValues[p_it]; // Get the "cached" shift value
+      // If x is zero, there's no variation, so no need to do the
+      // calculation. To make the loop below less branchy, we do the
+      // calculation for every systematic, but make sure that the
+      // coefficients are such that the correction factor will be 1
       if (x == 0){
         fitss[p_it]=&default_coeffs.front();
         xs[p_it]=0;
@@ -417,12 +455,6 @@ namespace ana
       }
 
       int shiftBin = fShiftBins[p_it];
-
-      // const Coeffs *fits = nubar ? &sp.fitsNubarRemap[type][shiftBin].front()
-      //                            : &sp.fitsRemap[type][shiftBin].front();
-
-      // const CoeffsAVX2 *fitsAVX2 = nubar ? &sp.fitsNubarRemapAVX2[type][shiftBin].front()
-      //                                : &sp.fitsRemapAVX2[type][shiftBin].front();
 
       const CoeffsAVX2 *fitsAVX2 = nubar ? sp.fitsNubarRemapAVX2.at(type, shiftBin, 0)
                                          : sp.fitsRemapAVX2.at(type, shiftBin, 0);
@@ -433,34 +465,53 @@ namespace ana
       xs[p_it]=x;
     } // end for syst
 
-    const size_t PREFETCH_DISTANCE=4;
+    // The are N coefficients (one per bin) stored in N/4+1 registers
     const unsigned int Nregister=N/4+1;
+
+    // This is the attempt to do prefetching of the coefficients. It
+    // didn't work out, but I'm leaving the code here for
+    // reference. It should be optimized away
+    const size_t PREFETCH_DISTANCE=4;
 
     unsigned int prefetch_p=PREFETCH_DISTANCE/Nregister;
     unsigned int prefetch_n=PREFETCH_DISTANCE%Nregister;
     const CoeffsAVX2* prefetch_coeffs=fitss[prefetch_p];
 
     for (size_t p_it = 0; p_it < NPreds; ++p_it) {
-      // const double x=xs[p_it];
-      // const double x_cube = util::cube(x);
-      // const double x_sqr = util::sqr(x);
-      
 #ifdef USE_PREDINTERP_OMP
       ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube,
                           corr[omp_get_thread_num()]);
 #else
-      // broadcast x3, x2, x into __m256d registers
+      // This loop implements
+      //
+      // for i in N:
+      //     f = Coeffs[n]
+      //     corr[n] *= f.a*x3 + f.b*x2 + f.c*x + f.d;
+      //
+      // explicitly vectorized with AVX2 registers and operations.
+      // Registers are 256 bits, so we can fit four doubles in
+      // each. We arrange the data so each register contains the
+      // relevant coefficient for four adjacent histogram bins. Then
+      // the add/multiply operations act on each of the four bins in
+      // parallel
+      //
+      // Quick guide to AVX2 intrinsics (the functions beginning "_mm"):
+      // In, eg _mm256_mul_pd:
+      // * "_mm256" indicates that the function acts on a 256-bit register
+      // * "mul" is multiply elementwise
+      // * "pd" is "packed double", ie interpret the register as four
+      //   doubles (as opposed to say, "ps" for "packed single", which
+      //   would be 8 floats, or any of a variety of integer codes)
+      
+      // x, x**2 and x**3 are the same for every bin, so we set all
+      // four items in `x` to the same value, and multiply the
+      // register by itself to get x**2 and x**3
       __m256d x=_mm256_set1_pd(xs[p_it]);
       __m256d x2=_mm256_mul_pd(x,x);
       __m256d x3=_mm256_mul_pd(x2,x);
+
       for(unsigned int n = 0; n < Nregister; ++n){
 
-        // out  = f.a*x3
-        // out += f.b*x2
-        // out += f.c*x
-        // out += f.d
-        // out *= corr[n]
-        // store corr
         if(++prefetch_n==Nregister){
           prefetch_n=0;
           ++prefetch_p;
@@ -475,19 +526,19 @@ namespace ana
         __m256d c=_mm256_cvtps_pd(f.c);
         __m256d d=_mm256_cvtps_pd(f.d);
 
+        // out  = f.a*x3
         __m256d out=_mm256_mul_pd(a, x3);
-
+        // out += f.b*x2
         out=_mm256_add_pd(out, _mm256_mul_pd(b, x2));
+        // out += f.c*x
         out=_mm256_add_pd(out, _mm256_mul_pd(c, x));
+        // out += f.d
         out=_mm256_add_pd(out, d);
-
-        out=_mm256_mul_pd(out, _mm256_loadu_pd(corrAVX2+4*n));
-        _mm256_storeu_pd(corrAVX2+4*n, out);
-        // corr[n] *= f.a*x3 + f.b*x2 + f.c*x + f.d;
+        // out *= corr[n]
+        out=_mm256_mul_pd(out, _mm256_loadu_pd(corr+4*n));
+        // Store out to corr[n]
+        _mm256_storeu_pd(corr+4*n, out);
       } // end for n
-
-      // ShiftSpectrumKernelAVX2(fitss[p_it], N/4+1, x, x_sqr, x_cube, corrAVX2);
-      
 #endif
     } // end for syst
 
@@ -505,7 +556,7 @@ namespace ana
 #ifdef USE_PREDINTERP_OMP
         arr[n] *= std::max(corr[0][n], 0.);
 #else
-        arr[n] *= std::max(corrAVX2[n], 0.);
+        arr[n] *= std::max(corr[n], 0.);
 #endif
       }
     }
@@ -558,9 +609,13 @@ namespace ana
     // Don't apply systs to bins with fewer than this many MC stats
     double fMinMCStats;
 
-    mutable std::vector<int> fShiftBins;
-    mutable unsigned int fNBins{0};
+    // Caches for the shift values of the active shifts, and the bins
+    // they correspond to. Since these depend only on the systematic,
+    // and not on the spectrum, we can find them once, and reuse them
+    // in each of the calls to ShiftedComponent at a given point
     mutable std::vector<double> fShiftValues;
+    mutable std::vector<int> fShiftBins;
+
     void InitFits() const;
 
     void InitFitsHelper(ShiftedPreds& sp,
