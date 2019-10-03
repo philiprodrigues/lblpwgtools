@@ -272,24 +272,24 @@ namespace ana
         for(unsigned int i = 0; i < sp.fitsRemapAVX2.Ni; ++i){
           for(unsigned int j = 0; j < sp.fitsRemapAVX2.Nj; ++j){
             for(unsigned int k = 0; k < sp.fitsRemapAVX2.Nk; ++k){
-#define GETCOEFF(offset, coeff) sp.fits.at(i).size()>(4*k+(offset)) ? sp.fits.at(i).at(4*k+(offset)).at(j).coeff : 0
+#define GETCOEFF(offset, coeff) sp.fits.at(i).size()>(4*k+(offset)) ? (float)sp.fits.at(i).at(4*k+(offset)).at(j).coeff : 0
               CoeffsAVX2* coeffs=sp.fitsRemapAVX2.at(i,j,k);
-              coeffs->a = _mm256_setr_pd(GETCOEFF(0, a),
+              coeffs->a = _mm_setr_ps(GETCOEFF(0, a),
                                          GETCOEFF(1, a),
                                          GETCOEFF(2, a),
                                          GETCOEFF(3, a));
             
-              coeffs->b = _mm256_setr_pd(GETCOEFF(0, b),
+              coeffs->b = _mm_setr_ps(GETCOEFF(0, b),
                                          GETCOEFF(1, b),
                                          GETCOEFF(2, b),
                                          GETCOEFF(3, b));
             
-              coeffs->c = _mm256_setr_pd(GETCOEFF(0, c),
+              coeffs->c = _mm_setr_ps(GETCOEFF(0, c),
                                          GETCOEFF(1, c),
                                          GETCOEFF(2, c),
                                          GETCOEFF(3, c));
             
-              coeffs->d = _mm256_setr_pd(GETCOEFF(0, d),
+              coeffs->d = _mm_setr_ps(GETCOEFF(0, d),
                                          GETCOEFF(1, d),
                                          GETCOEFF(2, d),
                                          GETCOEFF(3, d));
@@ -322,24 +322,24 @@ namespace ana
         for(unsigned int i = 0; i < sp.fitsNubarRemapAVX2.Ni; ++i){
           for(unsigned int j = 0; j < sp.fitsNubarRemapAVX2.Nj; ++j){
             for(unsigned int k = 0; k < sp.fitsNubarRemapAVX2.Nk; ++k){
-#define GETCOEFF2(offset, coeff) sp.fitsNubar[i].size()>(4*k+(offset)) ? sp.fitsNubar[i][4*k+(offset)][j].coeff : 0
+#define GETCOEFF2(offset, coeff) sp.fitsNubar[i].size()>(4*k+(offset)) ? (float)sp.fitsNubar[i][4*k+(offset)][j].coeff : 0
               CoeffsAVX2* coeffs=sp.fitsNubarRemapAVX2.at(i,j,k);
-              coeffs->a = _mm256_setr_pd(GETCOEFF2(0, a),
+              coeffs->a = _mm_setr_ps(GETCOEFF2(0, a),
                                          GETCOEFF2(1, a),
                                          GETCOEFF2(2, a),
                                          GETCOEFF2(3, a));
             
-              coeffs->b = _mm256_setr_pd(GETCOEFF2(0, b),
+              coeffs->b = _mm_setr_ps(GETCOEFF2(0, b),
                                          GETCOEFF2(1, b),
                                          GETCOEFF2(2, b),
                                          GETCOEFF2(3, b));
             
-              coeffs->c = _mm256_setr_pd(GETCOEFF2(0, c),
+              coeffs->c = _mm_setr_ps(GETCOEFF2(0, c),
                                          GETCOEFF2(1, c),
                                          GETCOEFF2(2, c),
                                          GETCOEFF2(3, c));
 
-              coeffs->d = _mm256_setr_pd(GETCOEFF2(0, d),
+              coeffs->d = _mm_setr_ps(GETCOEFF2(0, d),
                                          GETCOEFF2(1, d),
                                          GETCOEFF2(2, d),
                                          GETCOEFF2(3, d));

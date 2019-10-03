@@ -14,9 +14,9 @@ namespace ana
     };
 
     struct alignas(64) CoeffsAVX2{
-      CoeffsAVX2(__m256d _a, __m256d _b, __m256d _c, __m256d _d)
+      CoeffsAVX2(__m128 _a, __m128 _b, __m128 _c, __m128 _d)
         : a(_a), b(_b), c(_c), d(_d) {}
-      __m256d a, b, c, d;
+      __m128 a, b, c, d;
     };
 
     inline void ShiftSpectrumKernel(const Coeffs* __restrict__ fits,
@@ -57,11 +57,15 @@ namespace ana
         // out *= corr[n]
         // store corr
         const CoeffsAVX2& f = fits[n];
-        __m256d out=_mm256_mul_pd(f.a, x3);
+        __m256d a=_mm256_cvtps_pd(f.a);
+        __m256d b=_mm256_cvtps_pd(f.b);
+        __m256d c=_mm256_cvtps_pd(f.c);
+        __m256d d=_mm256_cvtps_pd(f.d);
+        __m256d out=_mm256_mul_pd(a, x3);
 
-        out=_mm256_add_pd(out, _mm256_mul_pd(f.b, x2));
-        out=_mm256_add_pd(out, _mm256_mul_pd(f.c, x));
-        out=_mm256_add_pd(out, f.d);
+        out=_mm256_add_pd(out, _mm256_mul_pd(b, x2));
+        out=_mm256_add_pd(out, _mm256_mul_pd(c, x));
+        out=_mm256_add_pd(out, d);
 
         out=_mm256_mul_pd(out, _mm256_loadu_pd(corr+4*n));
         _mm256_storeu_pd(corr+4*n, out);
@@ -84,22 +88,28 @@ namespace ana
       __m256d x2=_mm256_set1_pd(x2_);
       __m256d x3=_mm256_set1_pd(x3_);
       for(unsigned int n = 0; n < N; ++n){
+        const CoeffsAVX2& f = fits[n];
+        __m256d a=_mm256_cvtps_pd(f.a);
+        __m256d b=_mm256_cvtps_pd(f.b);
+        __m256d c=_mm256_cvtps_pd(f.c);
+        __m256d d=_mm256_cvtps_pd(f.d);
+
         // out  = f.a*x3
         // out += f.b*x2
         // out += f.c*x
         // out += f.d
         // out *= corr[n]
         // store corr
-        const CoeffsAVX2& f = fits[n];
-        __m256d out=_mm256_mul_pd(f.a, x3);
+
+        __m256d out=_mm256_mul_pd(a, x3);
 
         // Straight adds
         // out=_mm256_add_pd(out, _mm256_mul_pd(f.b, x2));
         // out=_mm256_add_pd(out, _mm256_mul_pd(f.c, x));
 
         // Fused multiply-adds
-        out=_mm256_fmadd_pd(f.b, x2, out);
-        __m256d tmp=_mm256_fmadd_pd(f.c, x, f.d);
+        out=_mm256_fmadd_pd(b, x2, out);
+        __m256d tmp=_mm256_fmadd_pd(c, x, d);
         out=_mm256_add_pd(out, tmp);
 
         out=_mm256_mul_pd(out, _mm256_loadu_pd(corr+4*n));

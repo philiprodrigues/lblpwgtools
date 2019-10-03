@@ -392,10 +392,10 @@ namespace ana
       }
     }
 
-    std::vector<CoeffsAVX2> default_coeffs(N/4+1, CoeffsAVX2(_mm256_setzero_pd(),
-                                                             _mm256_setzero_pd(),
-                                                             _mm256_setzero_pd(),
-                                                             _mm256_set1_pd(1)));
+    std::vector<CoeffsAVX2> default_coeffs(N/4+1, CoeffsAVX2(_mm_setzero_ps(),
+                                                             _mm_setzero_ps(),
+                                                             _mm_setzero_ps(),
+                                                             _mm_set1_ps(1)));
     const CoeffsAVX2* fitss[NPreds];
     double xs[NPreds];
 
@@ -454,6 +454,7 @@ namespace ana
       __m256d x2=_mm256_mul_pd(x,x);
       __m256d x3=_mm256_mul_pd(x2,x);
       for(unsigned int n = 0; n < Nregister; ++n){
+
         // out  = f.a*x3
         // out += f.b*x2
         // out += f.c*x
@@ -469,11 +470,16 @@ namespace ana
         // _mm_prefetch(&prefetch_coeffs[prefetch_n].a, _MM_HINT_T1);
         // _mm_prefetch(&prefetch_coeffs[prefetch_n].c, _MM_HINT_T1);
         const CoeffsAVX2& f = fitss[p_it][n];
-        __m256d out=_mm256_mul_pd(f.a, x3);
+        __m256d a=_mm256_cvtps_pd(f.a);
+        __m256d b=_mm256_cvtps_pd(f.b);
+        __m256d c=_mm256_cvtps_pd(f.c);
+        __m256d d=_mm256_cvtps_pd(f.d);
 
-        out=_mm256_add_pd(out, _mm256_mul_pd(f.b, x2));
-        out=_mm256_add_pd(out, _mm256_mul_pd(f.c, x));
-        out=_mm256_add_pd(out, f.d);
+        __m256d out=_mm256_mul_pd(a, x3);
+
+        out=_mm256_add_pd(out, _mm256_mul_pd(b, x2));
+        out=_mm256_add_pd(out, _mm256_mul_pd(c, x));
+        out=_mm256_add_pd(out, d);
 
         out=_mm256_mul_pd(out, _mm256_loadu_pd(corrAVX2+4*n));
         _mm256_storeu_pd(corrAVX2+4*n, out);
