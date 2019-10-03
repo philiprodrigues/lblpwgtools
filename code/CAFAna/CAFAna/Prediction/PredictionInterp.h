@@ -352,7 +352,6 @@ namespace ana
     TH1D *h = s.ToTH1(s.POT());
 
     const unsigned int N = h->GetNbinsX() + 2;
-    fNBins=N;
 
 #ifdef USE_PREDINTERP_OMP
     double corr[4][N];
@@ -553,7 +552,6 @@ namespace ana
     double fMinMCStats;
 
     mutable std::vector<int> fShiftBins;
-    mutable unsigned int fNBins{0};
     mutable std::vector<double> fShiftValues;
     void InitFits() const;
 
