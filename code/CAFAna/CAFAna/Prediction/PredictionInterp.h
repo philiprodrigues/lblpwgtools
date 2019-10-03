@@ -342,6 +342,11 @@ namespace ana
   }
 
   //----------------------------------------------------------------------
+  //
+  // HERE BE DRAGONS
+  // ShiftSpectrum is the largest function in profiles
+  // of jobs with lots of systematics, so we play a bunch of tricks to
+  // try to speed it up
   virtual inline Spectrum ShiftSpectrum(const Spectrum &s, CoeffsType type,
                                           bool nubar,
                                           const SystShifts &shift) const __attribute__((always_inline)) {
@@ -365,6 +370,15 @@ namespace ana
       };
     }
 #else
+    // We allocate the output array with a little extra on the end
+    // because we're storing the interpolation coefficients in
+    // registers containing four doubles, so we might have up to four
+    // dummy items on the end. The dummy items get ignored when we
+    // copy the result to the output array.
+    //
+    // The alignas was an attempt to align the array on a cache line,
+    // which probably doesn't make any difference, but probably
+    // doesn't hurt either
     alignas(64) double corr[N+4];
     for (unsigned int i = 0; i < N; ++i) {
       corr[i] = 1;
@@ -373,6 +387,8 @@ namespace ana
 
     size_t NPreds = fPreds.size();
 
+    // If the mapping from systematic to the shift bin (ie, which
+    // prediction to use) hasn't been cached, calculate it now
     if(fShiftBins.empty()){
       fShiftBins.resize(NPreds);
       fShiftValues.clear();
@@ -393,11 +409,24 @@ namespace ana
       }
     }
 
+    // We do two loops through the systematics below. In the first
+    // loop, we find the x values and interpolation coefficients for
+    // every systematic at this point, and in the second loop we
+    // actually use them to do the interpolation calculation. The
+    // original idea here was to be able to explicitly prefetch the
+    // coefficients a few steps ahead in the second loop, but I never
+    // managed to get that to actually help.
+
+    // Coefficients (0,0,0,1), constructed so that applying them in
+    // the interpolation formula with x=0 results in 1, which is the
+    // identity value for the output
     std::vector<CoeffsAVX2> default_coeffs(N/4+1, CoeffsAVX2(_mm256_setzero_pd(),
                                                              _mm256_setzero_pd(),
                                                              _mm256_setzero_pd(),
                                                              _mm256_set1_pd(1)));
+    // Pointers to the fit coefficients for each systematic
     const CoeffsAVX2* fitss[NPreds];
+    // The x values for each systematic to use in the interpolation
     double xs[NPreds];
 
     #pragma omp parallel for
@@ -405,7 +434,11 @@ namespace ana
       const ISyst *syst = fPreds[p_it].first;
       const ShiftedPreds &sp = fPreds[p_it].second;
 
-      double x = fShiftValues[p_it];
+      double x = fShiftValues[p_it]; // Get the "cached" shift value
+      // If x is zero, there's no variation, so no need to do the
+      // calculation. To make the loop below less branchy, we do the
+      // calculation for every systematic, but make sure that the
+      // coefficients are such that the correction factor will be 1
       if (x == 0){
         fitss[p_it]=&default_coeffs.front();
         xs[p_it]=0;
@@ -423,8 +456,13 @@ namespace ana
       xs[p_it]=x;
     } // end for syst
 
-    const size_t PREFETCH_DISTANCE=4;
+    // The are N coefficients (one per bin) stored in N/4+1 registers
     const unsigned int Nregister=N/4+1;
+
+    // This is the attempt to do prefetching of the coefficients. It
+    // didn't work out, but I'm leaving the code here for
+    // reference. It should be optimized away
+    const size_t PREFETCH_DISTANCE=4;
 
     unsigned int prefetch_p=PREFETCH_DISTANCE/Nregister;
     unsigned int prefetch_n=PREFETCH_DISTANCE%Nregister;
@@ -435,17 +473,35 @@ namespace ana
       ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube,
                           corr[omp_get_thread_num()]);
 #else
-      // broadcast x3, x2, x into __m256d registers
+      // This loop implements
+      //
+      // for i in N:
+      //     f = Coeffs[n]
+      //     corr[n] *= f.a*x3 + f.b*x2 + f.c*x + f.d;
+      //
+      // explicitly vectorized with AVX2 registers and operations.
+      // Registers are 256 bits, so we can fit four doubles in
+      // each. We arrange the data so each register contains the
+      // relevant coefficient for four adjacent histogram bins. Then
+      // the add/multiply operations act on each of the four bins in
+      // parallel
+      //
+      // Quick guide to AVX2 intrinsics (the functions beginning "_mm"):
+      // In, eg _mm256_mul_pd:
+      // * "_mm256" indicates that the function acts on a 256-bit register
+      // * "mul" is multiply elementwise
+      // * "pd" is "packed double", ie interpret the register as four
+      //   doubles (as opposed to say, "ps" for "packed single", which
+      //   would be 8 floats, or any of a variety of integer codes)
+      
+      // x, x**2 and x**3 are the same for every bin, so we set all
+      // four items in `x` to the same value, and multiply the
+      // register by itself to get x**2 and x**3
       __m256d x=_mm256_set1_pd(xs[p_it]);
       __m256d x2=_mm256_mul_pd(x,x);
       __m256d x3=_mm256_mul_pd(x2,x);
+
       for(unsigned int n = 0; n < Nregister; ++n){
-        // out  = f.a*x3
-        // out += f.b*x2
-        // out += f.c*x
-        // out += f.d
-        // out *= corr[n]
-        // store corr
         if(++prefetch_n==Nregister){
           prefetch_n=0;
           ++prefetch_p;
@@ -455,14 +511,17 @@ namespace ana
         // _mm_prefetch(&prefetch_coeffs[prefetch_n].a, _MM_HINT_T1);
         // _mm_prefetch(&prefetch_coeffs[prefetch_n].c, _MM_HINT_T1);
         const CoeffsAVX2& f = fitss[p_it][n];
+        // out  = f.a*x3
         __m256d out=_mm256_mul_pd(f.a, x3);
-
+        // out += f.b*x2
         out=_mm256_add_pd(out, _mm256_mul_pd(f.b, x2));
+        // out += f.c*x
         out=_mm256_add_pd(out, _mm256_mul_pd(f.c, x));
+        // out += f.d
         out=_mm256_add_pd(out, f.d);
-
+        // out *= corr[n]
         out=_mm256_mul_pd(out, _mm256_loadu_pd(corr+4*n));
-        // corr[n] *= f.a*x3 + f.b*x2 + f.c*x + f.d;
+        // Store out to corr[n]
         _mm256_storeu_pd(corr+4*n, out);
 
       } // end for n
