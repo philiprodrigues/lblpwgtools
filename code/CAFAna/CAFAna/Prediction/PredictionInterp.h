@@ -366,10 +366,8 @@ namespace ana
     }
 #else
     alignas(64) double corr[N+4];
-    alignas(64) double corrAVX2[N+4];
     for (unsigned int i = 0; i < N; ++i) {
       corr[i] = 1;
-      corrAVX2[i] = 1;
     }
 #endif
 
@@ -407,12 +405,7 @@ namespace ana
       const ISyst *syst = fPreds[p_it].first;
       const ShiftedPreds &sp = fPreds[p_it].second;
 
-      // double x = shift.GetShift(syst);
       double x = fShiftValues[p_it];
-      // if(fabs(x-x2)>1e-6){
-      //   std::cerr << "Wrong shift!" << std::endl;
-      //   exit(1);
-      // }
       if (x == 0){
         fitss[p_it]=&default_coeffs.front();
         xs[p_it]=0;
@@ -420,12 +413,6 @@ namespace ana
       }
 
       int shiftBin = fShiftBins[p_it];
-
-      // const Coeffs *fits = nubar ? &sp.fitsNubarRemap[type][shiftBin].front()
-      //                            : &sp.fitsRemap[type][shiftBin].front();
-
-      // const CoeffsAVX2 *fitsAVX2 = nubar ? &sp.fitsNubarRemapAVX2[type][shiftBin].front()
-      //                                : &sp.fitsRemapAVX2[type][shiftBin].front();
 
       const CoeffsAVX2 *fitsAVX2 = nubar ? sp.fitsNubarRemapAVX2.at(type, shiftBin, 0)
                                          : sp.fitsRemapAVX2.at(type, shiftBin, 0);
@@ -444,10 +431,6 @@ namespace ana
     const CoeffsAVX2* prefetch_coeffs=fitss[prefetch_p];
 
     for (size_t p_it = 0; p_it < NPreds; ++p_it) {
-      // const double x=xs[p_it];
-      // const double x_cube = util::cube(x);
-      // const double x_sqr = util::sqr(x);
-      
 #ifdef USE_PREDINTERP_OMP
       ShiftSpectrumKernel(fits, N, x, x_sqr, x_cube,
                           corr[omp_get_thread_num()]);
@@ -478,14 +461,11 @@ namespace ana
         out=_mm256_add_pd(out, _mm256_mul_pd(f.c, x));
         out=_mm256_add_pd(out, f.d);
 
-        out=_mm256_mul_pd(out, _mm256_loadu_pd(corrAVX2+4*n));
+        out=_mm256_mul_pd(out, _mm256_loadu_pd(corr+4*n));
         // corr[n] *= f.a*x3 + f.b*x2 + f.c*x + f.d;
-        _mm256_storeu_pd(corrAVX2+4*n, out);
+        _mm256_storeu_pd(corr+4*n, out);
 
       } // end for n
-
-      // ShiftSpectrumKernelAVX2(fitss[p_it], N/4+1, x, x_sqr, x_cube, corrAVX2);
-      
 #endif
     } // end for syst
 
@@ -503,7 +483,7 @@ namespace ana
 #ifdef USE_PREDINTERP_OMP
         arr[n] *= std::max(corr[0][n], 0.);
 #else
-        arr[n] *= std::max(corrAVX2[n], 0.);
+        arr[n] *= std::max(corr[n], 0.);
 #endif
       }
     }
