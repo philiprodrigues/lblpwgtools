@@ -13,6 +13,9 @@ namespace ana
       double a, b, c, d;
     };
 
+    // A struct to store the coefficients for 4 separate items in AVX2 registers. This means the memory layout is:
+    // a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3, d0, d1, d2, d3
+    // which is the convenient way around to do vectorized operations on 0,1,2,3 in parallel
     struct alignas(64) CoeffsAVX2{
       CoeffsAVX2(__m256d _a, __m256d _b, __m256d _c, __m256d _d)
         : a(_a), b(_b), c(_c), d(_d) {}

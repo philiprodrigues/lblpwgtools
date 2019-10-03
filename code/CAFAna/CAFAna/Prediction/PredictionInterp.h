@@ -180,6 +180,11 @@ namespace ana
       // std::vector<std::vector<std::vector<CoeffsAVX2>>> fitsRemapAVX2;
       // std::vector<std::vector<std::vector<CoeffsAVX2>>> fitsNubarRemapAVX2;
 
+      // A small wrapper to store the interpolation coefficients in a
+      // contiguous block of memory (which nested std::vectors don't,
+      // I think). This only works because we know the size of the
+      // array before we create it, and it's rectangular and not
+      // ragged
       struct CoeffsArray3D {
         CoeffsArray3D()
           : coeffs(nullptr)
@@ -190,12 +195,15 @@ namespace ana
           if(coeffs) _mm_free(coeffs);
           Ni=ni; Nj=nj; Nk=nk;
           N=ni*nj*nk;
+          // _mm_malloc from the intel intrinsics gives us aligned
+          // memory. Here we align to a 64-byte cache line, which hopefully
+          // improves speed downstream
           coeffs=(CoeffsAVX2*)_mm_malloc(N*sizeof(CoeffsAVX2), 64);
         }
 
         ~CoeffsArray3D() { if(coeffs) _mm_free(coeffs); }
 
-       inline  CoeffsAVX2* at(size_t i, size_t j, size_t k) const
+        inline  CoeffsAVX2* at(size_t i, size_t j, size_t k) const
         {
           // if(i>=Ni) std::cout << "i=" << i << " out of bounds" << std::endl;
           // if(j>=Nj) std::cout << "j=" << j << " out of bounds" << std::endl;
