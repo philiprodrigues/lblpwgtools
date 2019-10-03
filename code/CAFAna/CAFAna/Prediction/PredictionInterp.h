@@ -252,7 +252,11 @@ namespace ana
         InitFits();
         Spectrum& ret = fBinning;
         ret.Clear();
+        // Clear the caches of shift values and shift bins, so they
+        // get re-found for this systematic shift point (inside
+        // ShiftSpectrum)
         fShiftBins.clear();
+        fShiftValues.clear();
 
         if(ret.POT()==0) ret.OverridePOT(1e24);
 
@@ -475,8 +479,9 @@ namespace ana
         out=_mm256_add_pd(out, f.d);
 
         out=_mm256_mul_pd(out, _mm256_loadu_pd(corrAVX2+4*n));
-        _mm256_storeu_pd(corrAVX2+4*n, out);
         // corr[n] *= f.a*x3 + f.b*x2 + f.c*x + f.d;
+        _mm256_storeu_pd(corrAVX2+4*n, out);
+
       } // end for n
 
       // ShiftSpectrumKernelAVX2(fitss[p_it], N/4+1, x, x_sqr, x_cube, corrAVX2);
@@ -551,8 +556,13 @@ namespace ana
     // Don't apply systs to bins with fewer than this many MC stats
     double fMinMCStats;
 
-    mutable std::vector<int> fShiftBins;
+    // Caches for the shift values of the active shifts, and the bins
+    // they correspond to. Since these depend only on the systematic,
+    // and not on the spectrum, we can find them once, and reuse them
+    // in each of the calls to ShiftedComponent at a given point
     mutable std::vector<double> fShiftValues;
+    mutable std::vector<int> fShiftBins;
+
     void InitFits() const;
 
     void InitFitsHelper(ShiftedPreds& sp,
